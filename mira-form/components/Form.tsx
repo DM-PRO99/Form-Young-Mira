@@ -203,7 +203,7 @@ export default function Form() {
       )}
       
       <form onSubmit={handleSubmit(onSubmit, (errors) => {
-        console.log('❌ Errores de validación:', errors)
+        console.log(' Errores de validación:', errors)
         setNotification({
           show: true,
           type: 'error',
