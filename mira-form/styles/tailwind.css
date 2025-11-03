@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mira-blue: #00289f;
+}
+
+body {
+  background-color: theme('colors.blue.50');
+}
+
+.form-container {
+  @apply max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg my-8;
+  border-top: 4px solid var(--mira-blue);
+}
+
+.radio-group label {
+  @apply hover:bg-blue-50 transition-colors;
+}
+
+.btn-primary {
+  @apply bg-miraBlue text-white hover:bg-blue-800 transition-colors;
+}
