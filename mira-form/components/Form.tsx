@@ -14,7 +14,6 @@ interface FormData {
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
   if (q.type === 'group') {
-   
     const groupSchema: { [key: string]: z.ZodType<any> } = {}
     q.fields?.forEach((f: any) => {
       if (f.required) {
@@ -24,10 +23,20 @@ questions.forEach((q) => {
       }
     })
     schemaObj[`group_${q.id}`] = z.object(groupSchema)
-  } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date') {
-    if (q.required) schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
+  } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date' || q.type === 'select') {
+    if (q.required) {
+      schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
+    } else {
+      schemaObj[`q_${q.id}`] = z.string().optional()
+    }
   } else if (q.type === 'checkbox') {
-    if (q.required) schemaObj[`q_${q.id}`] = z.array(z.string()).min(1, `${q.question} es requerido`)
+    if (q.required) {
+      schemaObj[`q_${q.id}`] = z.array(z.string()).min(1, `${q.question} es requerido`)
+    } else {
+      schemaObj[`q_${q.id}`] = z.array(z.string()).optional()
+    }
+  } else if (q.type === 'textarea') {
+    schemaObj[`q_${q.id}`] = z.string().optional()
   }
 })
 
@@ -74,23 +83,52 @@ export default function Form() {
   }, [selectedNeighborhood, selectedMunicipality, setValue])
 
   const onSubmit = async (data: any) => {
-    console.log(' onSubmit llamado con data:', data)
+    console.log('📝 onSubmit llamado con data:', data)
     setLoading(true)
     setNotification({ show: false, type: 'success', message: '' })
     
-    const payload: any = {}
+    const payload: any = {
+      q_1: '',
+      q_2: '',
+      q_3: '',
+      q_4: '',
+      q_5: '',
+      tipoDocumento: '',
+      numeroDocumento: '',
+      q_7: '',
+      q_8: '',
+      q_8b: '',
+      q_8c: '',
+      q_9: '',
+      q_10: '',
+      q_11: '',
+      q_12: '',
+      q_13: '',
+      q_14: '',
+      q_15: '',
+      q_16: '',
+      q_17: '',
+      q_18: '',
+      q_19: '',
+      q_20: '',
+      q_21: '',
+      q_22: '',
+      q_23: '',
+    }
     
     Object.keys(data).forEach((k) => {
       if (k.startsWith('group_')) {
         const group = data[k] || {}
-        Object.keys(group).forEach((sub) => payload[sub] = group[sub])
+        Object.keys(group).forEach((sub) => {
+          payload[sub] = group[sub] || ''
+        })
       } else {
-        payload[k] = data[k]
+        payload[k] = data[k] || ''
       }
     })
     
     try {
-      console.log('Enviando datos:', payload)
+      console.log('📤 Enviando datos completos:', payload)
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

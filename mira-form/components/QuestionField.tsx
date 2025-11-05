@@ -265,7 +265,8 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
           <textarea 
             rows={4} 
             placeholder={q.placeholder || '✍️ Escribe tu respuesta aquí...'} 
-            className="modern-input w-full resize-y min-h-[100px]" 
+            className="modern-input w-full resize-y min-h-[100px]"
+            value={typeof watchValue === 'string' ? watchValue : ''}
             onChange={(e) => onChange(q.id as string, e.target.value)} 
           />
         </div>
@@ -292,7 +293,11 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
           <label className="font-bold text-gray-800 text-lg leading-tight pt-1">{q.question}</label>
         </div>
         <div className="ml-11">
-          <select className="modern-input w-full" onChange={(e) => onChange(q.id as string, e.target.value)}>
+          <select 
+            className="modern-input w-full" 
+            value={typeof watchValue === 'string' ? watchValue : ''}
+            onChange={(e) => onChange(q.id as string, e.target.value)}
+          >
             <option value="">Selecciona tu barrio...</option>
             {neighborhoods.map((n: string) => (<option key={n} value={n}>{n}</option>))}
           </select>
