@@ -1,8 +1,9 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { motion } from 'framer-motion'
 import QuestionField from './QuestionField'
 import { questions, neighborhoodsByMunicipality } from '@/data/questions'
 
@@ -49,6 +50,19 @@ export default function Form() {
 
   const selectedMunicipality = watch('q_8')
   const selectedNeighborhood = watch('q_8b')
+
+  // Calcular progreso del formulario
+  const formValues = watch()
+  const progress = useMemo(() => {
+    const totalFields = Object.keys(schemaObj).length
+    const filledFields = Object.keys(formValues).filter(key => {
+      const value = formValues[key]
+      if (Array.isArray(value)) return value.length > 0
+      if (typeof value === 'object') return Object.keys(value).length > 0
+      return value && value !== ''
+    }).length
+    return Math.round((filledFields / totalFields) * 100)
+  }, [formValues])
 
   useEffect(() => {
     if (selectedMunicipality && selectedNeighborhood && neighborhoodsByMunicipality[selectedMunicipality]) {
@@ -158,6 +172,42 @@ export default function Form() {
 
   return (
     <div className="form-container p-8">
+      {/* Indicador de progreso sticky */}
+      <div className="sticky top-0 z-50 -mx-8 -mt-8 mb-8 bg-white/95 backdrop-blur-lg border-b border-blue-100 px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-gray-700">Progreso del formulario</span>
+          <span className="text-sm font-bold text-miraBlue">{progress}%</span>
+        </div>
+        <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+          <motion.div
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-miraBlue via-blue-500 to-indigo-600 rounded-full shadow-lg"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+          </motion.div>
+        </div>
+        {progress > 0 && progress < 100 && (
+          <motion.p 
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-gray-500 mt-2 text-center"
+          >
+            ¡Vas muy bien! Sigue completando el formulario 🚀
+          </motion.p>
+        )}
+        {progress === 100 && (
+          <motion.p 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-xs text-green-600 font-semibold mt-2 text-center"
+          >
+            ✨ ¡Formulario completo! Ya puedes enviarlo
+          </motion.p>
+        )}
+      </div>
+
       <div className="mb-10 text-center">
         <div className="inline-block mb-4">
           <div className="w-16 h-1 bg-gradient-to-r from-miraBlue to-blue-500 mx-auto rounded-full"></div>
