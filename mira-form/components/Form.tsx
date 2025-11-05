@@ -47,7 +47,14 @@ type FormValues = z.infer<typeof FormSchema> & FormData;
 export default function Form() {
   const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {}
+    defaultValues: {
+      q_12: '',
+      q_13: '',
+      q_17: '',
+      q_18: [],
+      q_19: [],
+      q_21: '',
+    }
   })
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -84,9 +91,11 @@ export default function Form() {
 
   const onSubmit = async (data: any) => {
     console.log('📝 onSubmit llamado con data:', data)
+    console.log('📋 Claves recibidas:', Object.keys(data))
     setLoading(true)
     setNotification({ show: false, type: 'success', message: '' })
     
+    // Inicializar con TODOS los campos vacíos
     const payload: any = {
       q_1: '',
       q_2: '',
@@ -123,7 +132,13 @@ export default function Form() {
           payload[sub] = group[sub] || ''
         })
       } else {
-        payload[k] = data[k] || ''
+        const value = data[k]
+        // Manejar arrays vacíos y valores undefined/null
+        if (Array.isArray(value)) {
+          payload[k] = value.length > 0 ? value.join(', ') : ''
+        } else {
+          payload[k] = value || ''
+        }
       }
     })
     
