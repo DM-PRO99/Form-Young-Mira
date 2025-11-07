@@ -95,6 +95,37 @@ export const neighborhoodsByMunicipality: { [key: string]: { [key: string]: stri
     "El Ajizal": "Vereda",
     "El Porvenir": "Vereda",
   },
+  "Sabaneta": {
+    // Comité San José
+    "Las Lomitas": "Comité San José",
+    "San José": "Comité San José",
+    "La Doctora": "Comité San José",
+    "Cañaveralejo": "Comité San José",
+    "San Isidro": "Comité San José",
+    // Comité María Auxiliadora
+    "María Auxiliadora parte alta": "Comité María Auxiliadora",
+    "Palenque": "Comité María Auxiliadora",
+    // Comité Betania
+    "Betania": "Comité Betania",
+    "Calle del Banco": "Comité Betania",
+    "Entre Amigos": "Comité Betania",
+    "Santa Ana": "Comité Betania",
+    "Ave María": "Comité Betania",
+    "San Joaquín": "Comité Betania",
+    // Comité Calle Larga
+    "Metropolitano": "Comité Calle Larga",
+    "Prados de Sabaneta": "Comité Calle Larga",
+    "Cerámica": "Comité Calle Larga",
+    "Carmelo 2": "Comité Calle Larga",
+    "Calle Larga": "Comité Calle Larga",
+    "Carmelo 1": "Comité Calle Larga",
+    // Comité Villas del Carmen
+    "Mayorca": "Comité Villas del Carmen",
+    "La Florida": "Comité Villas del Carmen",
+    "María Auxiliadora parte baja": "Comité Villas del Carmen",
+    "Restrepo Naranjo": "Comité Villas del Carmen",
+    "Villas del Carmen": "Comité Villas del Carmen",
+  },
 };
 
 export const questions: Question[] = [
