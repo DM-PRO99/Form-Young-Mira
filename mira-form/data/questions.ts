@@ -126,6 +126,45 @@ export const neighborhoodsByMunicipality: { [key: string]: { [key: string]: stri
     "Restrepo Naranjo": "Comité Villas del Carmen",
     "Villas del Carmen": "Comité Villas del Carmen",
   },
+  "San Antonio de Prado": {
+    // Comité El Salado
+    "Vereda El Salado": "Comité El Salado",
+    // Comité Palo Blanco
+    "Palo Blanco": "Comité Palo Blanco",
+    "Los Salinas": "Comité Palo Blanco",
+    "La Capilla": "Comité Palo Blanco",
+    // Comité Vergel
+    "El Vergel": "Comité Vergel",
+    "Los Quintana": "Comité Vergel",
+    "La Palomera": "Comité Vergel",
+    // Comité Barichara
+    "Barichara": "Comité Barichara",
+    "Prados del Campo": "Comité Barichara",
+    "San José": "Comité Barichara",
+    "Prados de María": "Comité Barichara",
+    "Limonar 1": "Comité Barichara",
+    // Comité Pallavecine
+    "Urbanización Villa Pallavecine": "Comité Pallavecine",
+    "Pradito Parte Alta": "Comité Pallavecine",
+    "Horizontes": "Comité Pallavecine",
+    "Los Mesas": "Comité Pallavecine",
+    "Santa Rita": "Comité Pallavecine",
+    // Comité Aragón
+    "Aragón": "Comité Aragón",
+    "Rosaleda": "Comité Aragón",
+    "La Pradera": "Comité Aragón",
+    "Florida Blanca": "Comité Aragón",
+    "Limonar 2": "Comité Aragón",
+    // Comité Vegas de Alcalá
+    "La Verde": "Comité Vegas de Alcalá",
+    "Campiñas": "Comité Vegas de Alcalá",
+    "Ciudadela": "Comité Vegas de Alcalá",
+    "Urbanización Vegas de Alcalá": "Comité Vegas de Alcalá",
+    "Urbanización El Recreo": "Comité Vegas de Alcalá",
+    "Villa Loma": "Comité Vegas de Alcalá",
+    "Pradito": "Comité Vegas de Alcalá",
+    "El Descanso": "Comité Vegas de Alcalá",
+  },
 };
 
 export const questions: Question[] = [
