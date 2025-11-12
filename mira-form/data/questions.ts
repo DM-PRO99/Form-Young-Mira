@@ -165,6 +165,89 @@ export const neighborhoodsByMunicipality: { [key: string]: { [key: string]: stri
     "Pradito": "Comité Vegas de Alcalá",
     "El Descanso": "Comité Vegas de Alcalá",
   },
+  "La Estrella": {
+    // Comité - Alto de Los Ospina
+    "Ancón San Martín": "Comité Alto de Los Ospina",
+    "Barrio Camilo Torres": "Comité Alto de Los Ospina",
+    
+    // Comité - Campo Alegre
+    "Barrio Ancón La Playa": "Comité Campo Alegre",
+    "Barrio Centro": "Comité Campo Alegre",
+    "Barrio Los Ospina": "Comité Campo Alegre",
+    "Barrio Caquetá": "Comité Campo Alegre",
+    "Barrio Bellavista": "Comité Campo Alegre",
+    "Barrio La Esperanza": "Comité Campo Alegre",
+    
+    // Comité - Tarapaca
+    "Vereda Toledo": "Comité Tarapaca",
+    "Barrio Nuevo": "Comité Tarapaca",
+    "Barrio Villa Mira (Tarapaca)": "Comité Tarapaca",
+    "Barrio El Chispero": "Comité Tarapaca",
+    "Barrio El Dorado": "Comité Tarapaca",
+    "Vereda El Guayabo": "Comité Tarapaca",
+    "Barrio El Pedrero": "Comité Tarapaca",
+    
+    // Comité - Comfama
+    "Barrio Horizontes": "Comité Comfama",
+    "Barrio Juan XXIII": "Comité Comfama",
+    "Vereda La Bermejala": "Comité Comfama",
+    "Barrio La Chinca": "Comité Comfama",
+    "Vereda La Culebra": "Comité Comfama",
+    "Barrio La Ferreria": "Comité Comfama",
+    
+    // Comité - Bariloche
+    "Bariloche": "Comité Bariloche",
+    
+    // Comité - La Inmaculada II
+    "La Inmaculada II": "Comité La Inmaculada II",
+    "La Inmaculada I": "Comité La Inmaculada II",
+    "Barrio Los Chanos": "Comité La Inmaculada II",
+    
+    // Comité - Vereda Calle Vieja
+    "Vereda Calle Vieja": "Comité Vereda Calle Vieja",
+    "Barrio La Ospina": "Comité Vereda Calle Vieja",
+    "Barrio La Raya": "Comité Vereda Calle Vieja",
+    
+    // Comité - Vereda La Tablacita
+    "Vereda La Tablacita": "Comité Vereda La Tablacita",
+    "Barrio Monterrey": "Comité Vereda La Tablacita",
+    "Barrio Pan de Azúcar": "Comité Vereda La Tablacita",
+    "Barrio Peñas Blancas": "Comité Vereda La Tablacita",
+    "Barrio Primavera": "Comité Vereda La Tablacita",
+    
+    // Comité - Vereda Pueblo Viejo
+    "Vereda Pueblo Viejo": "Comité Vereda Pueblo Viejo",
+    "Barrio Quebrada Grande": "Comité Vereda Pueblo Viejo",
+    "Vereda Sagrada Familia": "Comité Vereda Pueblo Viejo",
+    "Barrio San Andrés": "Comité Vereda Pueblo Viejo",
+    "Barrio San Cayetano": "Comité Vereda Pueblo Viejo",
+    "Barrio San Isidro": "Comité Vereda Pueblo Viejo",
+    "Vereda San José": "Comité Vereda Pueblo Viejo",
+    
+    // Comité - Meleguindo
+    "Barrio San Miguel": "Comité Meleguindo",
+    "Barrio San Vicente": "Comité Meleguindo",
+    "Barrio Sierra Morena": "Comité Meleguindo",
+    "Vereda Tierra Amarilla": "Comité Meleguindo",
+    "Vereda Tablaza": "Comité Meleguindo",
+    "Barrio Bellos Aires": "Comité Meleguindo",
+    "Villa Alicia": "Comité Meleguindo",
+    "Barrio San Diego": "Comité Meleguindo",
+    "Ancón Sur": "Comité Meleguindo",
+    "Barrios Unidos": "Comité Meleguindo",
+    "Barrio Bavaria": "Comité Meleguindo",
+    "Barrio Industrial": "Comité Meleguindo",
+    "Barrio San Agustín-Industrial": "Comité Meleguindo",
+    "Vereda San José Barrio": "Comité Meleguindo",
+    
+    // Comité - Septima
+    "Villa Mira (Septima)": "Comité Septima",
+    "Barrio San Agustín (Septima)": "Comité Septima",
+    "Barrio Escobar": "Comité Septima",
+    "Barrio Suramérica": "Comité Septima",
+    "Barrio Las Brisas": "Comité Septima",
+    "Barrio Monterrey (Septima)": "Comité Septima",
+  },
 };
 
 export const questions: Question[] = [
