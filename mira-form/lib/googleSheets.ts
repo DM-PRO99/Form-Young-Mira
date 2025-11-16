@@ -10,7 +10,7 @@ const auth = new google.auth.GoogleAuth({
   scopes: SCOPES,
 });
 
-const sheets = google.sheets({ version: "v4", auth });
+export const sheets = google.sheets({ version: "v4", auth });
 
 // Orden fijo de columnas que coincide con el formulario
 const COLUMN_ORDER = [
@@ -72,15 +72,26 @@ const COLUMN_HEADERS: { [key: string]: string } = {
   "q_23": "Horario de Culto Preferido",
 };
 
+// Función auxiliar para convertir número de columna a letra de Excel (1 = A, 2 = B, etc.)
+function columnNumberToLetter(column: number): string {
+  let result = "";
+  while (column > 0) {
+    column--;
+    result = String.fromCharCode(65 + (column % 26)) + result;
+    column = Math.floor(column / 26);
+  }
+  return result;
+}
+
 export async function appendRow(sheetName: string, data: any) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) throw new Error("❌ Falta GOOGLE_SHEET_ID en .env");
+  if (!sheetId) throw new Error("Falta GOOGLE_SHEET_ID en .env");
 
   if (!process.env.GOOGLE_CLIENT_EMAIL) {
-    throw new Error("❌ Falta GOOGLE_CLIENT_EMAIL en .env");
+    throw new Error("Falta GOOGLE_CLIENT_EMAIL en .env");
   }
   if (!process.env.GOOGLE_PRIVATE_KEY) {
-    throw new Error("❌ Falta GOOGLE_PRIVATE_KEY en .env");
+    throw new Error("Falta GOOGLE_PRIVATE_KEY en .env");
   }
 
   const sheet = sheets.spreadsheets.values;
@@ -103,11 +114,6 @@ export async function appendRow(sheetName: string, data: any) {
   // Crear valores en el mismo orden que los headers
   const values = COLUMN_ORDER.map((key) => serializeValue(data[key] || ""));
 
-  console.log("📊 Orden de columnas:", COLUMN_ORDER);
-  console.log("📊 Headers:", headers);
-  console.log("📊 Datos recibidos:", data);
-  console.log("📊 Values ordenados:", values);
-
   try {
     // Verificar si existen headers en la hoja
     const existing = await sheet.get({
@@ -119,7 +125,6 @@ export async function appendRow(sheetName: string, data: any) {
 
     // Si no hay headers, crearlos
     if (existingHeaders.length === 0) {
-      console.log("✨ Creando encabezados en orden fijo...");
       await sheet.update({
         spreadsheetId: sheetId,
         range: `${sheetName}!1:1`,
@@ -135,7 +140,6 @@ export async function appendRow(sheetName: string, data: any) {
                           existingHeaders.every((h, i) => h === headers[i]);
       
       if (!headersMatch) {
-        console.log("⚠️ Headers no coinciden. Actualizando...");
         await sheet.update({
           spreadsheetId: sheetId,
           range: `${sheetName}!1:1`,
@@ -145,20 +149,64 @@ export async function appendRow(sheetName: string, data: any) {
       }
     }
 
-    // Guardar los datos en el orden correcto
-    console.log("💾 Guardando datos en Google Sheets...");
-    await sheet.append({
-      spreadsheetId: sheetId,
-      range: `${sheetName}!A1`,
-      valueInputOption: "RAW",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: { values: [values] },
-    });
+    // Buscar si ya existe un registro con la misma cédula
+    const numeroDocumento = data.numeroDocumento || "";
+    let rowToUpdate: number | null = null;
 
-    console.log("✅ Datos guardados exitosamente en el orden correcto");
+    if (numeroDocumento) {
+      console.log(`🔍 Buscando registro con cédula: ${numeroDocumento}`);
+      
+      // Obtener todos los datos de la hoja (excluyendo headers)
+      const allData = await sheet.get({
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A2:Z`, // Desde la fila 2 en adelante (sin headers)
+      });
+
+      const rows = allData.data.values || [];
+      
+      // Encontrar el índice de la columna "Número de Documento"
+      const numeroDocumentoIndex = COLUMN_ORDER.indexOf("numeroDocumento");
+      
+      if (numeroDocumentoIndex !== -1) {
+        // Buscar la fila que contiene la misma cédula
+        const numeroDocumentoStr = String(numeroDocumento).trim();
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          // Comparar el valor en la columna de número de documento (normalizando ambos valores)
+          const rowValue = row[numeroDocumentoIndex] ? String(row[numeroDocumentoIndex]).trim() : "";
+          if (rowValue === numeroDocumentoStr && numeroDocumentoStr !== "") {
+            rowToUpdate = i + 2; // +2 porque la fila 1 son headers y el índice es base 0
+            break;
+          }
+        }
+      }
+    }
+
+    // Si se encontró un registro existente, actualizarlo
+    if (rowToUpdate !== null) {
+      console.log(`🔄 Actualizando registro existente en la fila ${rowToUpdate}...`);
+      const lastColumn = columnNumberToLetter(headers.length);
+      await sheet.update({
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A${rowToUpdate}:${lastColumn}${rowToUpdate}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [values] },
+      });
+    } else {
+      // Si no existe, agregar el nuevo registro
+      console.log("💾 Agregando nuevo registro en Google Sheets...");
+      await sheet.append({
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: [values] },
+      });
+    }
+
     return true;
   } catch (error: any) {
-    console.error("❌ Error al guardar en Google Sheets:", error);
+    console.error("Error al guardar en Google Sheets:", error);
     if (error.message?.includes("invalid_grant")) {
       throw new Error("Error de autenticación con Google Sheets. Verifica las credenciales.");
     }

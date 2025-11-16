@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import QuestionField from './QuestionField'
 import { questions, neighborhoodsByMunicipality } from '@/data/questions'
 
@@ -11,18 +11,103 @@ interface FormData {
   [key: string]: string | string[] | { [key: string]: string };
 }
 
+// Funciones de validación personalizadas
+const validateName = (value: string) => {
+  if (!value) return true // La validación de requerido se maneja por separado
+  const hasNumbers = /\d/.test(value)
+  return !hasNumbers
+}
+
+const validatePhone = (value: string) => {
+  if (!value) return true
+  return /^\d+$/.test(value.replace(/\s/g, ''))
+}
+
+const validateDocumentNumber = (value: string) => {
+  if (!value) return true
+  return /^\d+$/.test(value)
+}
+
+const validateDate = (value: string) => {
+  if (!value) return true
+  const date = new Date(value)
+  return !isNaN(date.getTime())
+}
+
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
   if (q.type === 'group') {
     const groupSchema: { [key: string]: z.ZodType<any> } = {}
     q.fields?.forEach((f: any) => {
-      if (f.required) {
-        groupSchema[f.name] = z.string().min(1, `${f.label || f.name} es requerido`)
+      if (f.name === 'numeroDocumento') {
+        // Validación especial para número de documento
+        if (f.required) {
+          groupSchema[f.name] = z.string()
+            .min(1, `${f.label || f.name} es requerido`)
+            .refine(validateDocumentNumber, {
+              message: 'El número de documento solo puede contener números'
+            })
+        } else {
+          groupSchema[f.name] = z.string()
+            .optional()
+            .refine((val) => !val || validateDocumentNumber(val), {
+              message: 'El número de documento solo puede contener números'
+            })
+        }
       } else {
-        groupSchema[f.name] = z.string().optional()
+        if (f.required) {
+          groupSchema[f.name] = z.string().min(1, `${f.label || f.name} es requerido`)
+        } else {
+          groupSchema[f.name] = z.string().optional()
+        }
       }
     })
     schemaObj[`group_${q.id}`] = z.object(groupSchema)
+  } else if (q.id === 2) {
+    // Nombre completo - no debe contener números
+    if (q.required) {
+      schemaObj[`q_${q.id}`] = z.string()
+        .min(1, `${q.question} es requerido`)
+        .refine(validateName, {
+          message: 'El nombre no puede contener números'
+        })
+    } else {
+      schemaObj[`q_${q.id}`] = z.string()
+        .optional()
+        .refine((val) => !val || validateName(val), {
+          message: 'El nombre no puede contener números'
+        })
+    }
+  } else if (q.id === 5) {
+    // Número de celular - solo números
+    if (q.required) {
+      schemaObj[`q_${q.id}`] = z.string()
+        .min(1, `${q.question} es requerido`)
+        .refine(validatePhone, {
+          message: 'El número de celular solo puede contener números'
+        })
+    } else {
+      schemaObj[`q_${q.id}`] = z.string()
+        .optional()
+        .refine((val) => !val || validatePhone(val), {
+          message: 'El número de celular solo puede contener números'
+        })
+    }
+  } else if (q.id === 4) {
+    // Fecha de nacimiento - validar formato
+    if (q.required) {
+      schemaObj[`q_${q.id}`] = z.string()
+        .min(1, `${q.question} es requerido`)
+        .refine(validateDate, {
+          message: 'Por favor ingresa una fecha válida'
+        })
+    } else {
+      schemaObj[`q_${q.id}`] = z.string()
+        .optional()
+        .refine((val) => !val || validateDate(val), {
+          message: 'Por favor ingresa una fecha válida'
+        })
+    }
   } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date' || q.type === 'select') {
     if (q.required) {
       schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
@@ -44,9 +129,77 @@ const FormSchema = z.object(schemaObj)
 
 type FormValues = z.infer<typeof FormSchema> & FormData;
 
-export default function Form() {
-  const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormValues>({
+interface FormProps {
+  datosPrellenados?: Record<string, string> | null;
+}
+
+// Función para mapear los headers de Google Sheets a los campos del formulario
+const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValues> => {
+  const mapeo: Record<string, string> = {
+    "Aceptación Política de Datos": "q_1",
+    "Nombre Completo": "q_2",
+    "Género": "q_3",
+    "Fecha de Nacimiento": "q_4",
+    "Número de Celular": "q_5",
+    "Tipo de Documento": "tipoDocumento",
+    "Número de Documento": "numeroDocumento",
+    "Grupo Poblacional": "q_7",
+    "Municipio": "q_8",
+    "Barrio": "q_8b",
+    "Comuna": "q_8c",
+    "Dirección": "q_9",
+    "Libreta Militar": "q_10",
+    "¿Estás Estudiando?": "q_11",
+    "Qué Te Gustaría Estudiar": "q_12",
+    "Qué Estás Estudiando": "q_13",
+    "Actividades Deportivas": "q_14",
+    "Actividades Políticas": "q_15",
+    "Actividades Sociales/Cívicas": "q_16",
+    "Idiomas": "q_17",
+    "Redes Sociales": "q_18",
+    "Conocimientos Tecnológicos": "q_19",
+    "¿Tienes Emprendimiento?": "q_20",
+    "Cuál Emprendimiento": "q_21",
+    "Tiempo Conociendo la Iglesia": "q_22",
+    "Horario de Culto Preferido": "q_23",
+  };
+
+  const datosPrellenados: Partial<FormValues> = {};
+
+  Object.keys(datos).forEach((header) => {
+    const campo = mapeo[header];
+    if (campo) {
+      const valor = datos[header];
+      
+      // Si el campo es un grupo (tipoDocumento o numeroDocumento)
+      if (campo === "tipoDocumento" || campo === "numeroDocumento") {
+        if (!datosPrellenados["group_6"]) {
+          datosPrellenados["group_6"] = {};
+        }
+        (datosPrellenados["group_6"] as any)[campo] = valor || "";
+      }
+      // Si el campo es un checkbox (arrays separados por comas)
+      else if (campo === "q_14" || campo === "q_15" || campo === "q_16" || campo === "q_18" || campo === "q_19") {
+        if (valor && valor.trim()) {
+          datosPrellenados[campo] = valor.split(",").map((v) => v.trim()).filter((v) => v);
+        } else {
+          datosPrellenados[campo] = [];
+        }
+      }
+      // Campos normales
+      else {
+        datosPrellenados[campo] = valor || "";
+      }
+    }
+  });
+
+  return datosPrellenados;
+};
+
+export default function Form({ datosPrellenados = null }: FormProps) {
+  const { control, handleSubmit, formState: { errors }, watch, setValue, trigger } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
+    mode: 'onChange', // Validar en tiempo real mientras el usuario escribe
     defaultValues: {
       q_12: '',
       q_13: '',
@@ -58,6 +211,8 @@ export default function Form() {
   })
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [showHabeasDataModal, setShowHabeasDataModal] = useState(false)
+  const [pendingSubmitData, setPendingSubmitData] = useState<any>(null)
   const [notification, setNotification] = useState<{
     show: boolean;
     type: 'success' | 'error';
@@ -80,6 +235,30 @@ export default function Form() {
     return Math.round((filledFields / totalFields) * 100)
   }, [formValues])
 
+  // Prellenar formulario cuando hay datos encontrados
+  useEffect(() => {
+    if (datosPrellenados) {
+      const datosMapeados = mapearDatosAPrellenar(datosPrellenados);
+      console.log('📝 Prellenando formulario con datos:', datosMapeados);
+      
+      // Prellenar campos individuales
+      Object.keys(datosMapeados).forEach((key) => {
+        const valor = datosMapeados[key];
+        
+        if (key === "group_6" && typeof valor === "object") {
+          // Manejar grupo de documento - pasar el objeto completo
+          setValue("group_6" as any, valor as any);
+        } else if (Array.isArray(valor)) {
+          // Manejar arrays (checkboxes)
+          setValue(key as any, valor);
+        } else {
+          // Campos normales
+          setValue(key as any, valor);
+        }
+      });
+    }
+  }, [datosPrellenados, setValue]);
+
   useEffect(() => {
     if (selectedMunicipality && selectedNeighborhood && neighborhoodsByMunicipality[selectedMunicipality]) {
       const comuna = neighborhoodsByMunicipality[selectedMunicipality][selectedNeighborhood]
@@ -88,6 +267,24 @@ export default function Form() {
       }
     }
   }, [selectedNeighborhood, selectedMunicipality, setValue])
+
+  const handleFormSubmit = (data: any) => {
+    // Guardar los datos y mostrar el modal de confirmación
+    setPendingSubmitData(data)
+    setShowHabeasDataModal(true)
+  }
+
+  const confirmSubmit = async () => {
+    if (!pendingSubmitData) return
+    
+    setShowHabeasDataModal(false)
+    await onSubmit(pendingSubmitData)
+  }
+
+  const cancelSubmit = () => {
+    setShowHabeasDataModal(false)
+    setPendingSubmitData(null)
+  }
 
   const onSubmit = async (data: any) => {
     console.log('📝 onSubmit llamado con data:', data)
@@ -305,7 +502,78 @@ export default function Form() {
         </div>
       )}
       
-      <form onSubmit={handleSubmit(onSubmit, (errors) => {
+      {/* Modal de confirmación Ley 1581 */}
+      <AnimatePresence>
+        {showHabeasDataModal && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={cancelSubmit}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            >
+            <div className="p-8">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-miraBlue to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-miraBlue mb-2">
+                  Política de Tratamiento de Datos Personales
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Ley 1581 de 2012 - Habeas Data
+                </p>
+              </div>
+
+              {/* Contenido */}
+              <div className="bg-blue-50 rounded-2xl p-6 mb-6 border border-blue-100">
+                <p className="text-gray-700 leading-relaxed mb-4">
+                  En cumplimiento a la <strong>Ley 1581 de 2012</strong> de Protección de Datos Personales (Habeas Data), 
+                  informamos que los datos suministrados en este formulario serán tratados conforme a las disposiciones legales.
+                </p>
+                <p className="text-gray-700 leading-relaxed mb-4">
+                  Al enviar este formulario, <strong>autorizas de manera expresa</strong> el manejo de tu información dentro de 
+                  una base de datos privada y protegida, para los fines relacionados con la Encuesta Juventudes MIRA.
+                </p>
+                <div className="bg-white rounded-xl p-4 border-l-4 border-miraBlue">
+                  <p className="text-sm text-gray-600">
+                    <strong>Derechos que tienes:</strong> Conocer, actualizar, rectificar y suprimir tu información personal, 
+                    así como revocar la autorización otorgada para el tratamiento de tus datos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={cancelSubmit}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmSubmit}
+                  className="flex-1 btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                >
+                  Aceptar y Enviar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit(handleFormSubmit, (errors) => {
         console.log(' Errores de validación:', errors)
         setNotification({
           show: true,
@@ -332,33 +600,63 @@ export default function Form() {
         )}
         {questions.map((q) => {
           if (q.type === 'group') {
+            const fieldName = `group_${String(q.id)}` as keyof FormValues
+            const fieldError = errors[fieldName]
             return (
-              <Controller key={q.id} control={control} name={`group_${q.id}`} render={({ field }) => (
+              <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <QuestionField q={q} onChange={(k,v) => field.onChange({ ...(field.value||{}), [k]: v })} watchValue={field.value} />
+                  <QuestionField 
+                    q={q} 
+                    onChange={(k,v) => {
+                      field.onChange({ ...(field.value||{}), [k]: v })
+                      // Validar el campo después de cambiar
+                      setTimeout(() => trigger(fieldName as any), 0)
+                    }} 
+                    watchValue={field.value}
+                    error={fieldError as any}
+                    fieldName={String(fieldName)}
+                  />
                 </div>
               )} />
             )
           }
 
           if (q.type === 'checkbox') {
+            const fieldName = `q_${String(q.id)}` as keyof FormValues
+            const fieldError = errors[fieldName]
             return (
-              <Controller key={q.id} control={control} name={`q_${q.id}`} render={({ field }) => (
+              <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
                 <div className="radio-group">
-                  <QuestionField q={q} onChange={(k,v) => field.onChange(v)} watchValue={field.value} />
+                  <QuestionField 
+                    q={q} 
+                    onChange={(k,v) => {
+                      field.onChange(v)
+                      setTimeout(() => trigger(fieldName as any), 0)
+                    }} 
+                    watchValue={field.value}
+                    error={fieldError as any}
+                    fieldName={String(fieldName)}
+                  />
                 </div>
               )} />
             )
           }
 
+          const fieldName = `q_${String(q.id)}` as keyof FormValues
+          const fieldError = errors[fieldName]
           return (
-            <Controller key={q.id} control={control} name={`q_${q.id}`} render={({ field }) => (
+            <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
               <div className="radio-group">
                 <QuestionField 
                   q={q} 
-                  onChange={(k,v) => field.onChange(v)} 
+                  onChange={(k,v) => {
+                    field.onChange(v)
+                    setTimeout(() => trigger(fieldName as any), 0)
+                  }} 
                   watchValue={field.value}
                   municipalityValue={selectedMunicipality}
+                  error={fieldError as any}
+                  fieldName={String(fieldName)}
                 />
               </div>
             )} />

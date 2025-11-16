@@ -251,14 +251,14 @@ export const neighborhoodsByMunicipality: { [key: string]: { [key: string]: stri
 };
 
 export const questions: Question[] = [
-  {
+  /* {
     id: 1,
     question:
       "En cumplimiento a la Ley 1581 de 2012 de Protección de Datos Personales (Habeas Data), informamos que los datos suministrados en este formulario serán tratados conforme a las disposiciones legales. Al diligenciar y enviar este formulario, autorizas de manera expresa el manejo de tu información dentro de una base de datos privada y protegida.\n\n¿Aceptas la política de tratamiento de datos personales?",
     type: "radio",
     options: ["Sí", "No"],
     required: true,
-  },
+  }, */
   {
     id: 2,
     question: "Nombre completo",
@@ -506,11 +506,5 @@ export const questions: Question[] = [
       "Culto de la tarde - 6:30 PM"
     ],
     required: true,
-  },
-  {
-    id: "final",
-    type: "text", // Tipo requerido por la interfaz Question
-    message:
-      "💙 ¡MUCHAS GRACIAS POR PARTICIPAR! Quedas cordialmente invitado a nuestra próxima integración de Juventudes MIRA. Agradecemos tu compromiso y disposición con las respuestas."
   }
 ];
