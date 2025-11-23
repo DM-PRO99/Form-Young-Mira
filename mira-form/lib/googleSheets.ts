@@ -29,18 +29,18 @@ const COLUMN_ORDER = [
   "q_10",          // Libreta militar
   "q_11",          // ¿Estás estudiando?
   "q_12",          // Qué te gustaría estudiar
-  "q_13",          // Qué estás estudiando
-  "q_14",          // Actividades deportivas
-  "q_15",          // Actividades políticas
-  "q_16",          // Actividades sociales
-  "q_17",          // Idiomas
-  "q_18",          // Redes sociales
-  "q_19",          // Conocimientos tecnológicos
-  "q_20",          // ¿Tienes emprendimiento?
-  "q_21",          // Cuál emprendimiento
-  "q_22",          // Tiempo conociendo la iglesia
-  "q_23",          // Horario de culto
-  "q_24"
+  "q_13",          // ¿En que institucion estudias?
+  "q_14",          // Qué estás estudiando
+  "q_15",          // Actividades deportivas
+  "q_16",          // Actividades políticas
+  "q_17",          // Actividades sociales
+  "q_18",          // Idiomas
+  "q_19",          // Redes sociales
+  "q_20",          // Conocimientos tecnológicos
+  "q_21",          // ¿Tienes emprendimiento?
+  "q_22",          // Cuál emprendimiento
+  "q_23",          // Tiempo conociendo la iglesia
+  "q_24",          // Horario de culto
 ];
 
 // Nombres legibles para los headers
@@ -60,18 +60,18 @@ const COLUMN_HEADERS: { [key: string]: string } = {
   "q_10": "Libreta Militar",
   "q_11": "¿Estás Estudiando?",
   "q_12": "Qué Te Gustaría Estudiar",
-  "q_13": "Qué Estás Estudiando",
-  "q_14": "Actividades Deportivas",
-  "q_15": "Actividades Políticas",
-  "q_16": "Actividades Sociales/Cívicas",
-  "q_17": "Idiomas",
-  "q_18": "Redes Sociales",
-  "q_19": "Conocimientos Tecnológicos",
-  "q_20": "¿Tienes Emprendimiento?",
-  "q_21": "Cuál Emprendimiento",
-  "q_22": "Tiempo Conociendo la Iglesia",
-  "q_23": "Horario de Culto Preferido",
-  "q_24": "¿En que institucion estudias?"
+  "q_13": "¿En que institucion estudias?",
+  "q_14": "Qué Estás Estudiando",
+  "q_15": "Actividades Deportivas",
+  "q_16": "Actividades Políticas",
+  "q_17": "Actividades Sociales/Cívicas",
+  "q_18": "Idiomas",
+  "q_19": "Redes Sociales",
+  "q_20": "Conocimientos Tecnológicos",
+  "q_21": "¿Tienes Emprendimiento?",
+  "q_22": "Cuál Emprendimiento",
+  "q_23": "Tiempo Conociendo la Iglesia",
+  "q_24": "Horario de Culto Preferido"
 };
 
 // Función auxiliar para convertir número de columna a letra de Excel (1 = A, 2 = B, etc.)

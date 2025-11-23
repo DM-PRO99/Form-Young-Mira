@@ -151,18 +151,18 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     "Libreta Militar": "q_10",
     "¿Estás Estudiando?": "q_11",
     "Qué Te Gustaría Estudiar": "q_12",
-    "Qué Estás Estudiando": "q_13",
-    "Actividades Deportivas": "q_14",
-    "Actividades Políticas": "q_15",
-    "Actividades Sociales/Cívicas": "q_16",
-    "Idiomas": "q_17",
-    "Redes Sociales": "q_18",
-    "Conocimientos Tecnológicos": "q_19",
-    "¿Tienes Emprendimiento?": "q_20",
-    "Cuál Emprendimiento": "q_21",
-    "Tiempo Conociendo la Iglesia": "q_22",
-    "Horario de Culto Preferido": "q_23",
-    "¿En que institucion estudias?": "q_24",
+    "¿En que institucion estudias?": "q_13",
+    "Qué Estás Estudiando": "q_14",
+    "Actividades Deportivas": "q_15",
+    "Actividades Políticas": "q_16",
+    "Actividades Sociales/Cívicas": "q_17",
+    "Idiomas": "q_18",
+    "Redes Sociales": "q_19",
+    "Conocimientos Tecnológicos": "q_20",
+    "¿Tienes Emprendimiento?": "q_21",
+    "Cuál Emprendimiento": "q_22",
+    "Tiempo Conociendo la Iglesia": "q_23",
+    "Horario de Culto Preferido": "q_24",
   };
 
   const datosPrellenados: Partial<FormValues> = {};
@@ -180,7 +180,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
         (datosPrellenados["group_6"] as any)[campo] = valor || "";
       }
       // Si el campo es un checkbox (arrays separados por comas)
-      else if (campo === "q_14" || campo === "q_15" || campo === "q_16" || campo === "q_18" || campo === "q_19") {
+      else if (campo === "q_15" || campo === "q_16" || campo === "q_17" || campo === "q_19" || campo === "q_20") {
         if (valor && valor.trim()) {
           datosPrellenados[campo] = valor.split(",").map((v) => v.trim()).filter((v) => v);
         } else {

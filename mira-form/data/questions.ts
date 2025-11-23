@@ -382,12 +382,20 @@ export const questions: Question[] = [
   {
     id: 13,
     question:
+      "¿En que institucion estudias?",
+    type: "text",
+    placeholder: "ej: UdA",
+    required: true,
+  },
+  {
+    id: 14,
+    question:
       "En caso de que tu respuesta sea 'Sí', cuéntanos qué estás estudiando",
     type: "textarea",
     required: false,
   },
   {
-    id: 14,
+    id: 15,
     question:
       "¿Cuál o cuáles de las siguientes actividades deportivas practicas o has practicado?",
     type: "checkbox",
@@ -405,7 +413,7 @@ export const questions: Question[] = [
     required: true,
   },
   {
-    id: 15,
+    id: 16,
     question:
       "¿Cuál o cuáles de las siguientes actividades políticas o de participación ciudadana practicas o has practicado?",
     type: "checkbox",
@@ -420,7 +428,7 @@ export const questions: Question[] = [
     required: true,
   },
   {
-    id: 16,
+    id: 17,
     question:
       "¿Cuál o cuáles de las siguientes actividades sociales o cívicas practicas o has practicado?",
     type: "checkbox",
@@ -437,14 +445,14 @@ export const questions: Question[] = [
     required: true,
   },
   {
-    id: 17,
+    id: 18,
     question: "¿Sabes o estás aprendiendo algún idioma?",
     type: "text",
     placeholder: "Ej: Inglés, Francés, Portugués, Italiano...",
     required: false,
   },
   {
-    id: 18,
+    id: 19,
     question: "¿Tienes redes sociales? ¿Cuáles utilizas?",
     type: "checkbox",
     options: [
@@ -461,7 +469,7 @@ export const questions: Question[] = [
     required: false,
   },
   {
-    id: 19,
+    id: 20,
     question: "¿Tienes conocimientos en las siguientes áreas tecnológicas?",
     type: "checkbox",
     options: [
@@ -476,20 +484,20 @@ export const questions: Question[] = [
     required: false,
   },
   {
-    id: 20,
+    id: 21,
     question: "¿Tienes algún emprendimiento?",
     type: "radio",
     options: ["Sí", "No"],
     required: true,
   },
   {
-    id: 21,
+    id: 22,
     question: "Si tu respuesta es 'Sí', cuéntanos cuál es tu emprendimiento",
     type: "textarea",
     required: false,
   },
   {
-    id: 22,
+    id: 23,
     question:
       "¿Hace cuánto tiempo conoces la Iglesia de Dios Ministerial de Jesucristo Internacional?",
     type: "text",
@@ -497,7 +505,7 @@ export const questions: Question[] = [
     required: true,
   },
   {
-    id: 23,
+    id: 24,
     question:
       "¿En qué horario te queda más fácil asistir al culto?",
     type: "radio",
@@ -505,14 +513,6 @@ export const questions: Question[] = [
       "Culto de la mañana - 7:00 AM",
       "Culto de la tarde - 6:30 PM"
     ],
-    required: true,
-  },
-  {
-    id: 24,
-    question:
-      "¿En que institucion estudias?",
-    type: "text",
-    placeholder: "ej: UdA",
     required: true,
   },
 ];
