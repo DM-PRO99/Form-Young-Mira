@@ -40,6 +40,7 @@ const COLUMN_ORDER = [
   "q_21",          // Cuál emprendimiento
   "q_22",          // Tiempo conociendo la iglesia
   "q_23",          // Horario de culto
+  "q_24"
 ];
 
 // Nombres legibles para los headers
@@ -70,6 +71,7 @@ const COLUMN_HEADERS: { [key: string]: string } = {
   "q_21": "Cuál Emprendimiento",
   "q_22": "Tiempo Conociendo la Iglesia",
   "q_23": "Horario de Culto Preferido",
+  "q_24": "¿En que institucion estudias?"
 };
 
 // Función auxiliar para convertir número de columna a letra de Excel (1 = A, 2 = B, etc.)

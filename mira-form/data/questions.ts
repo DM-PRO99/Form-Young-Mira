@@ -506,5 +506,13 @@ export const questions: Question[] = [
       "Culto de la tarde - 6:30 PM"
     ],
     required: true,
-  }
+  },
+  {
+    id: 24,
+    question:
+      "¿En que institucion estudias?",
+    type: "text",
+    placeholder: "ej: UdA",
+    required: true,
+  },
 ];
