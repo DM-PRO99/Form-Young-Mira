@@ -43,7 +43,7 @@ questions.forEach((q) => {
         // Validación especial para número de documento
         if (f.required) {
           groupSchema[f.name] = z.string()
-            .min(1, `${f.label || f.name} es requerido`)
+            .min(1, `Este campo requerido`)
             .refine(validateDocumentNumber, {
               message: 'El número de documento solo puede contener números'
             })
@@ -56,7 +56,7 @@ questions.forEach((q) => {
         }
       } else {
         if (f.required) {
-          groupSchema[f.name] = z.string().min(1, `${f.label || f.name} es requerido`)
+          groupSchema[f.name] = z.string().min(1, `Este campo requerido`)
         } else {
           groupSchema[f.name] = z.string().optional()
         }
@@ -162,6 +162,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     "Cuál Emprendimiento": "q_21",
     "Tiempo Conociendo la Iglesia": "q_22",
     "Horario de Culto Preferido": "q_23",
+    "¿En que institucion estudias?": "q_24",
   };
 
   const datosPrellenados: Partial<FormValues> = {};
@@ -320,6 +321,7 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       q_21: '',
       q_22: '',
       q_23: '',
+      q_24: '',
     }
     
     Object.keys(data).forEach((k) => {

@@ -15,11 +15,12 @@ export async function GET(
     }
 
     const { cedula } = await params; // 👈 dynamic route param (await en Next.js 15+)
-    const range = "Sheet1!A:Z";
+    const range = "Sheet1!A1:AB500"; // Rango ampliado para incluir todas las columnas (hasta columna 28)
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range,
+      majorDimension: "ROWS"
     });
 
     const rows = response.data.values;
@@ -53,7 +54,7 @@ export async function GET(
     }
 
     const record = header.reduce<Record<string, string>>((obj, key, i) => {
-      obj[key] = foundRow[i] || "";
+      obj[key] = foundRow[i] ?? "";
       return obj;
     }, {});
 
