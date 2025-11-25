@@ -150,8 +150,8 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     "Dirección": "q_9",
     "Libreta Militar": "q_10",
     "¿Estás Estudiando?": "q_11",
-    "Qué Te Gustaría Estudiar": "q_12",
-    "¿En que institucion estudias?": "q_13",
+    "¿En que institucion estudias?": "q_12",
+    "Qué Te Gustaría Estudiar": "q_13",
     "Qué Estás Estudiando": "q_14",
     "Actividades Deportivas": "q_15",
     "Actividades Políticas": "q_16",
@@ -358,6 +358,9 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       
       if (responseData.success) {
         console.log('Formulario enviado exitosamente')
+        // Limpiar localStorage después de enviar exitosamente
+        localStorage.removeItem('mira_form_cedula')
+        localStorage.removeItem('mira_form_datos')
         setNotification({
           show: true,
           type: 'success',

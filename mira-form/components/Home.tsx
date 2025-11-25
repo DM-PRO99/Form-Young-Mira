@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -16,8 +16,11 @@ const cedulaSchema = z.object({
 
 type CedulaFormValues = z.infer<typeof cedulaSchema>
 
+const STORAGE_KEY = 'mira_form_cedula'
+const STORAGE_DATA_KEY = 'mira_form_datos'
+
 const Home = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<CedulaFormValues>({
+  const { register, handleSubmit, formState: { errors }, watch } = useForm<CedulaFormValues>({
     resolver: zodResolver(cedulaSchema)
   })
 
@@ -25,6 +28,34 @@ const Home = () => {
   const [noRegistrado, setNoRegistrado] = useState(false)
   const [cedulaIngresada, setCedulaIngresada] = useState(false)
   const [datosEncontrados, setDatosEncontrados] = useState<any>(null)
+  const [notFound, setNotFound] = useState(false);
+  const [checkingStorage, setCheckingStorage] = useState(true);
+
+  // Verificar localStorage al cargar el componente
+  useEffect(() => {
+    const checkStorage = async () => {
+      try {
+        const savedCedula = localStorage.getItem(STORAGE_KEY)
+        const savedData = localStorage.getItem(STORAGE_DATA_KEY)
+        
+        if (savedCedula && savedData) {
+          // Si hay datos guardados, cargarlos automáticamente
+          const parsedData = JSON.parse(savedData)
+          setDatosEncontrados(parsedData)
+          setCedulaIngresada(true)
+        }
+      } catch (error) {
+        console.error('Error al leer localStorage:', error)
+        // Si hay error, limpiar el storage
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(STORAGE_DATA_KEY)
+      } finally {
+        setCheckingStorage(false)
+      }
+    }
+
+    checkStorage()
+  }, [])
 
   const onSubmit = async (data: CedulaFormValues) => {
     setLoading(true)
@@ -32,9 +63,15 @@ const Home = () => {
     try {
       const respuesta = await buscarPorCedula(data.cedula)
       
-      // Si se encontraron datos, guardarlos
+      // Si se encontraron datos, guardarlos en estado y localStorage
       if (respuesta.data) {
         setDatosEncontrados(respuesta.data)
+        // Guardar cédula y datos en localStorage
+        localStorage.setItem(STORAGE_KEY, data.cedula)
+        localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(respuesta.data))
+      } else {
+        // Si no hay datos pero la búsqueda fue exitosa, guardar solo la cédula
+        localStorage.setItem(STORAGE_KEY, data.cedula)
       }
       
       setTimeout(() => {
@@ -43,12 +80,28 @@ const Home = () => {
       }, 1000)
     } catch (err) {
       setLoading(false);
+      setNotFound(true);
       return
     }
   }
 
   const redirectToRegisterForm = () => {
+    // Guardar en localStorage que es un nuevo registro
+    const cedulaValue = watch('cedula')
+    if (cedulaValue) {
+      localStorage.setItem(STORAGE_KEY, cedulaValue)
+    }
     setNoRegistrado(true);
+  }
+
+  const handleVolverAtras = () => {
+    // Limpiar localStorage y volver a la pantalla de ingreso
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_DATA_KEY)
+    setCedulaIngresada(false)
+    setNoRegistrado(false)
+    setDatosEncontrados(null)
+    setNotFound(false)
   }
 
   const buscarPorCedula = async (cedula: string) => {
@@ -68,11 +121,34 @@ const Home = () => {
     return data
   }
 
+  // Mostrar loading mientras se verifica el storage
+  if (checkingStorage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-miraBlue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Si ya se ingresó la cédula, mostrar el formulario
   if (cedulaIngresada || noRegistrado) {
     return (
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 md:px-6">
             <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-xl">
+                <div className="mb-4 sm:mb-6">
+                  <button
+                    onClick={handleVolverAtras}
+                    className="flex items-center gap-2 text-sm sm:text-base text-gray-600 hover:text-miraBlue transition-colors mb-4"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    <span>Volver atrás</span>
+                  </button>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-miraBlue text-center mb-2">Encuesta Juventudes MIRA</h1>
                 <p className="text-xs sm:text-sm text-slate-600 text-center mb-4 sm:mb-6 px-2">
                     ¡Queremos conocer a nuestro equipo de trabajo! Por eso, te invitamos a llenar esta encuesta para consolidar nuestro grupo.
@@ -133,13 +209,21 @@ const Home = () => {
                     {...register('cedula')}
                     placeholder="Ej: 1234567890"
                     className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all ${
-                      errors.cedula
+                      errors.cedula || notFound
                         ? 'border-red-300 focus:ring-red-200'
                         : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
                     }`}
+                    onChange={() => {
+                      if (notFound) {
+                        setNotFound(false);
+                      }
+                    }}
                     disabled={loading}
                   />
                 </div>
+                  {notFound && (
+                    <p className='text-red-300'>La cedula no se encuentra registrada</p>
+                  )}
                 {errors.cedula && (
                   <motion.p
                     initial={{ opacity: 0, y: -5 }}

@@ -287,7 +287,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
               <input
                 type="text"
                 placeholder="Especifica tu respuesta..."
-                className="modern-input w-full sm:w-full md:w-2/3 text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all text-sm sm:text-base"
                 value={otherValue}
                 onChange={(e) => {
                   setOtherValue(e.target.value);

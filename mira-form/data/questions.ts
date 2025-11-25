@@ -269,7 +269,7 @@ export const questions: Question[] = [
     id: 3,
     question: "Género",
     type: "radio",
-    options: ["Femenino", "Masculino", "Otro"],
+    options: ["Femenino", "Masculino"],
     required: true,
   },
   {
@@ -314,6 +314,7 @@ export const questions: Question[] = [
       "Migrantes",
       "Víctimas del conflicto armado",
       "Personas en condición de discapacidad (PCD)",
+      "Campesinos",
       "No aplica",
       "Otro",
     ],
@@ -375,17 +376,17 @@ export const questions: Question[] = [
   {
     id: 12,
     question:
-      "En caso de que tu respuesta sea 'No', cuéntanos qué te gustaría estudiar",
-    type: "textarea",
-    required: false,
+      "¿En que institucion estudias?",
+    type: "text",
+    placeholder: "ej: UdeA, Pascual Bravo",
+    required: true,
   },
   {
     id: 13,
     question:
-      "¿En que institucion estudias?",
-    type: "text",
-    placeholder: "ej: UdA",
-    required: true,
+      "En caso de que tu respuesta sea 'No', cuéntanos qué te gustaría estudiar",
+    type: "textarea",
+    required: false,
   },
   {
     id: 14,
