@@ -186,7 +186,7 @@ const Home = () => {
               Encuesta Juventudes MIRA
             </h1>
             <p className="text-blue-100 text-xs sm:text-sm px-2">
-              Ingresa tu número de cédula para comenzar
+              Ingresa tu número de Documento para comenzar
             </p>
           </div>
 
@@ -195,7 +195,7 @@ const Home = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               <div>
                 <label htmlFor="cedula" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Número de Cédula
+                  Número de Documento
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
