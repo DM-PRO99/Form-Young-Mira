@@ -14,8 +14,8 @@ export async function GET(
       );
     }
 
-    const { cedula } = await params; // 👈 dynamic route param (await en Next.js 15+)
-    const range = "Sheet1!A1:AB500"; // Rango ampliado para incluir todas las columnas (hasta columna 28)
+    const { cedula } = await params; 
+    const range = "Sheet1!A1:AB500"; 
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -42,7 +42,7 @@ export async function GET(
     }
 
     const foundRow = rows.find(
-      (row: string, i: number) => i > 0 && row[ccIndex] === cedula
+      (row: string[], i: number) => i > 0 && row[ccIndex] === cedula
     );
 
     if (!foundRow) {
