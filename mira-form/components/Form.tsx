@@ -34,6 +34,18 @@ const validateDate = (value: string) => {
   return !isNaN(date.getTime())
 }
 
+const calculateAge = (dateString: string) => {
+  const birthDate = new Date(dateString)
+  if (isNaN(birthDate.getTime())) return NaN
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age
+}
+
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
   // if (q.id === 1) return;
@@ -237,7 +249,8 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       if (typeof value === 'object') return Object.keys(value).length > 0
       return value && value !== ''
     }).length
-    return Math.round((filledFields / totalFields) * 100)
+    const rawProgress = Math.round((filledFields / totalFields) * 100)
+    return Math.min(100, rawProgress)
   }, [formValues])
 
   // Prellenar formulario cuando hay datos encontrados
@@ -273,6 +286,19 @@ export default function Form({ datosPrellenados = null }: FormProps) {
   }, [selectedNeighborhood, selectedMunicipality, setValue])
 
   const handleFormSubmit = (data: any) => {
+    const birthDate = data['q_4'] as string | undefined
+    if (birthDate) {
+      const age = calculateAge(birthDate)
+      if (!isNaN(age) && age > 28) {
+        setNotification({
+          show: true,
+          type: 'error',
+          message: 'Este formulario está dirigido a personas de hasta 28 años. No es posible registrar una fecha de nacimiento mayor a 28 años.'
+        })
+        return
+      }
+    }
+
     // Guardar los datos y mostrar el modal de confirmación
     setPendingSubmitData(data)
     setShowHabeasDataModal(true)
