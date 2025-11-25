@@ -535,5 +535,5 @@ export const questions: Question[] = [
       "Ninguna",
     ],
     required: true,
-  },
+  }
 ];
