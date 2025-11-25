@@ -516,4 +516,24 @@ export const questions: Question[] = [
     ],
     required: true,
   },
+  {
+    id: 25,
+    question:
+      "¿En cual de estas áreas has trabajado o tienes conocimiento?",
+    type: "checkbox",
+    options: [
+      "Libertad Religiosa",
+      "Movilidad y seguridad vial",
+      "Servicio Militar obligatoro",
+      "Salud",
+      "SPD y Estratificación",
+      "Medio ambiente",
+      "PASI",
+      "Empresarios y emprendimientos",
+      "Sello azul",
+      "Tecnológia e IA",
+      "Ninguna",
+    ],
+    required: true,
+  },
 ];

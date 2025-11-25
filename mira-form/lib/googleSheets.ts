@@ -41,6 +41,7 @@ const COLUMN_ORDER = [
   "q_22",          // Cuál emprendimiento
   "q_23",          // Tiempo conociendo la iglesia
   "q_24",          // Horario de culto
+  "q_25",          // Áreas de trabajo o conocimiento
 ];
 
 // Nombres legibles para los headers
@@ -71,7 +72,8 @@ const COLUMN_HEADERS: { [key: string]: string } = {
   "q_21": "¿Tienes Emprendimiento?",
   "q_22": "Cuál Emprendimiento",
   "q_23": "Tiempo Conociendo la Iglesia",
-  "q_24": "Horario de Culto Preferido"
+  "q_24": "Horario de Culto Preferido",
+  "q_25": "¿En cual de estas áreas has trabajado o tienes conocimiento?",
 };
 
 // Función auxiliar para convertir número de columna a letra de Excel (1 = A, 2 = B, etc.)
@@ -135,11 +137,9 @@ export async function appendRow(sheetName: string, data: any) {
       });
     } else {
       // Verificar que los headers existentes coincidan con el orden esperado
-      console.log("🔍 Headers existentes:", existingHeaders);
-      
       // Si los headers no coinciden, actualizarlos
       const headersMatch = existingHeaders.length === headers.length && 
-                          existingHeaders.every((h, i) => h === headers[i]);
+                          existingHeaders.every((h: string, i: number) => h === headers[i]);
       
       if (!headersMatch) {
         await sheet.update({
@@ -156,8 +156,6 @@ export async function appendRow(sheetName: string, data: any) {
     let rowToUpdate: number | null = null;
 
     if (numeroDocumento) {
-      console.log(`🔍 Buscando registro con cédula: ${numeroDocumento}`);
-      
       // Obtener todos los datos de la hoja (excluyendo headers)
       const allData = await sheet.get({
         spreadsheetId: sheetId,
@@ -186,7 +184,6 @@ export async function appendRow(sheetName: string, data: any) {
 
     // Si se encontró un registro existente, actualizarlo
     if (rowToUpdate !== null) {
-      console.log(`🔄 Actualizando registro existente en la fila ${rowToUpdate}...`);
       const lastColumn = columnNumberToLetter(headers.length);
       await sheet.update({
         spreadsheetId: sheetId,
@@ -196,7 +193,6 @@ export async function appendRow(sheetName: string, data: any) {
       });
     } else {
       // Si no existe, agregar el nuevo registro
-      console.log("💾 Agregando nuevo registro en Google Sheets...");
       await sheet.append({
         spreadsheetId: sheetId,
         range: `${sheetName}!A1`,
@@ -208,7 +204,6 @@ export async function appendRow(sheetName: string, data: any) {
 
     return true;
   } catch (error: any) {
-    console.error("Error al guardar en Google Sheets:", error);
     if (error.message?.includes("invalid_grant")) {
       throw new Error("Error de autenticación con Google Sheets. Verifica las credenciales.");
     }

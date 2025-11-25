@@ -41,9 +41,8 @@ export async function GET(
       );
     }
 
-    console.log(rows, ccIndex, cedula)
     const foundRow = rows.find(
-      (row, i) => i > 0 && row[ccIndex] === cedula
+      (row: string, i: number) => i > 0 && row[ccIndex] === cedula
     );
 
     if (!foundRow) {
@@ -53,7 +52,7 @@ export async function GET(
       );
     }
 
-    const record = header.reduce<Record<string, string>>((obj, key, i) => {
+    const record = header.reduce<Record<string, string>>((obj: any, key: any, i: any) => {
       obj[key] = foundRow[i] ?? "";
       return obj;
     }, {});

@@ -136,7 +136,7 @@ const Home = () => {
   // Si ya se ingresó la cédula, mostrar el formulario
   if (cedulaIngresada || noRegistrado) {
     return (
-        <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 md:px-6">
+        <div className="w-full max-w-4xl mx-auto p-3 sm:p-4 md:p-6">
             <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-xl">
                 <div className="mb-4 sm:mb-6">
                   <button

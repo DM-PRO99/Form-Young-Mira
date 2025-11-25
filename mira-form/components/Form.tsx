@@ -36,6 +36,8 @@ const validateDate = (value: string) => {
 
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
+  // if (q.id === 1) return;
+
   if (q.type === 'group') {
     const groupSchema: { [key: string]: z.ZodType<any> } = {}
     q.fields?.forEach((f: any) => {
@@ -163,6 +165,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     "Cuál Emprendimiento": "q_22",
     "Tiempo Conociendo la Iglesia": "q_23",
     "Horario de Culto Preferido": "q_24",
+    "¿En cual de estas áreas has trabajado o tienes conocimiento?": "q_25",
   };
 
   const datosPrellenados: Partial<FormValues> = {};
@@ -171,6 +174,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     const campo = mapeo[header];
     if (campo) {
       const valor = datos[header];
+      console.log(valor)
       
       // Si el campo es un grupo (tipoDocumento o numeroDocumento)
       if (campo === "tipoDocumento" || campo === "numeroDocumento") {
@@ -180,7 +184,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
         (datosPrellenados["group_6"] as any)[campo] = valor || "";
       }
       // Si el campo es un checkbox (arrays separados por comas)
-      else if (campo === "q_15" || campo === "q_16" || campo === "q_17" || campo === "q_19" || campo === "q_20") {
+      else if (campo === "q_15" || campo === "q_16" || campo === "q_17" || campo === "q_19" || campo === "q_20" || campo === "q_25") {
         if (valor && valor.trim()) {
           datosPrellenados[campo] = valor.split(",").map((v) => v.trim()).filter((v) => v);
         } else {
@@ -240,7 +244,6 @@ export default function Form({ datosPrellenados = null }: FormProps) {
   useEffect(() => {
     if (datosPrellenados) {
       const datosMapeados = mapearDatosAPrellenar(datosPrellenados);
-      console.log('📝 Prellenando formulario con datos:', datosMapeados);
       
       // Prellenar campos individuales
       Object.keys(datosMapeados).forEach((key) => {
@@ -288,14 +291,12 @@ export default function Form({ datosPrellenados = null }: FormProps) {
   }
 
   const onSubmit = async (data: any) => {
-    console.log('📝 onSubmit llamado con data:', data)
-    console.log('📋 Claves recibidas:', Object.keys(data))
     setLoading(true)
     setNotification({ show: false, type: 'success', message: '' })
     
     // Inicializar con TODOS los campos vacíos
     const payload: any = {
-      q_1: '',
+      q_1: 'Sí',
       q_2: '',
       q_3: '',
       q_4: '',
@@ -322,6 +323,7 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       q_22: '',
       q_23: '',
       q_24: '',
+      q_25: '',
     }
     
     Object.keys(data).forEach((k) => {
@@ -342,7 +344,6 @@ export default function Form({ datosPrellenados = null }: FormProps) {
     })
     
     try {
-      console.log('📤 Enviando datos completos:', payload)
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -350,14 +351,12 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       })
       
       const responseData = await res.json()
-      console.log('Respuesta del servidor:', responseData)
       
       if (!res.ok) {
         throw new Error(responseData.message || 'Error al enviar el formulario')
       }
       
       if (responseData.success) {
-        console.log('Formulario enviado exitosamente')
         // Limpiar localStorage después de enviar exitosamente
         localStorage.removeItem('mira_form_cedula')
         localStorage.removeItem('mira_form_datos')
@@ -579,7 +578,6 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       </AnimatePresence>
 
       <form onSubmit={handleSubmit(handleFormSubmit, (errors) => {
-        console.log(' Errores de validación:', errors)
         setNotification({
           show: true,
           type: 'error',
@@ -673,7 +671,6 @@ export default function Form({ datosPrellenados = null }: FormProps) {
             className="btn-primary w-full py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all" 
             type="submit" 
             disabled={loading}
-            onClick={() => console.log('🔘 Botón clickeado')}
           >
             {loading ? 'Enviando...' : 'Enviar respuestas'}
           </button>
