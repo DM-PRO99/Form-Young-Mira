@@ -123,7 +123,19 @@ questions.forEach((q) => {
         })
     }
   } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date' || q.type === 'select') {
-    if (q.required) {
+    if (typeof q.required === 'function') {
+      // Si required es una función, usamos refine para la validación condicional
+      schemaObj[`q_${q.id}`] = z.string().superRefine((val, ctx) => {
+        const values = ctx.parent;
+        const isRequired = q.required ? (q.required as (values: any) => boolean)(values) : false;
+        if (isRequired && (!val || val.trim() === '')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `${q.question} es requerido`,
+          });
+        }
+      });
+    } else if (q.required) {
       schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
     } else {
       schemaObj[`q_${q.id}`] = z.string().optional()

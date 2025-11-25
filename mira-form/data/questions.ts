@@ -12,7 +12,7 @@ export type Question = {
   question?: string;
   type: 'radio' | 'checkbox' | 'text' | 'textarea' | 'date' | 'group' | 'select';
   options?: string[];
-  required?: boolean;
+  required?: boolean | ((values: Record<string, any>) => boolean);
   placeholder?: string;
   fields?: Field[];
   message?: string;
@@ -340,7 +340,7 @@ export const questions: Question[] = [
     question: "Barrio",
     type: "select",
     placeholder: "Selecciona tu barrio",
-    required: true,
+    required: (values: any) => values?.q_8 !== "Envigado",
     dependsOn: "q_8",
   },
   {
@@ -379,7 +379,7 @@ export const questions: Question[] = [
       "¿En que institucion estudias?",
     type: "text",
     placeholder: "ej: UdeA, Pascual Bravo",
-    required: true,
+    required: false,
   },
   {
     id: 13,
