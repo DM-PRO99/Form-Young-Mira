@@ -94,6 +94,14 @@ export const neighborhoodsByMunicipality: { [key: string]: { [key: string]: stri
     "Los Gómez": "Vereda",
     "El Ajizal": "Vereda",
     "El Porvenir": "Vereda",
+    "Del valle": "Comuna 7",
+    "El Porvenir n-1": "Comuna 7",
+    "El Porvenir n-2": "Comuna 7",
+    "Las villas": "Comuna 7",
+    "San Pablo": "Comuna 7",
+    "Jardines De San José": "Comuna 7",
+    "Tierra Verde": "Comuna 7",
+    "El Arenal" : "Comuna 7",
   },
   "Sabaneta": {
     // Comité San José
