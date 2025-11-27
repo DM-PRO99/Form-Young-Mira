@@ -78,7 +78,11 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 relative z-10">
-            {q.fields?.map((f: any, index: number) => (
+            {q.fields?.map((f: any, index: number) => {
+              // FIX PARA CAMPOS ANIDADOS: Asegurar que 'required' es solo un booleano para el elemento HTML.
+              const isFieldRequired = typeof f.required === 'boolean' ? f.required : undefined;
+
+              return (
               <motion.div 
                 key={f.name}
                 initial={{ opacity: 0, x: -20 }}
@@ -98,7 +102,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                           ? 'border-red-400 focus:border-red-500 focus:ring-red-200' 
                           : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
                       } ${q.readOnly ? 'bg-gradient-to-r from-gray-50 to-blue-50 cursor-not-allowed' : ''}`}
-                      required={f.required} 
+                      required={isFieldRequired} // Usando la variable resuelta
                       value={watchValue && !Array.isArray(watchValue) && typeof watchValue === 'object' ? watchValue[f.name] || '' : ''}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -143,7 +147,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                           : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
                       } ${q.readOnly ? 'bg-gradient-to-r from-gray-50 to-blue-50 cursor-not-allowed' : ''}`}
                       type={f.type === 'number' ? 'number' : f.type} 
-                      required={f.required}
+                      required={isFieldRequired} 
                       value={watchValue && !Array.isArray(watchValue) && typeof watchValue === 'object' ? watchValue[f.name] || '' : ''}
                       onChange={(e) => onChange(f.name, e.target.value)} 
                     />
@@ -160,7 +164,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                   </div>
                 )}
               </motion.div>
-            ))}
+            )})}
           </div>
         </div>
       </motion.div>
@@ -178,7 +182,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
         animate="visible"
         className="mb-6 relative"
       >
-        {/* Pregunta con diseño mejorado */}
+        
         <div className="mb-4 sm:mb-5 flex items-start gap-2 sm:gap-3">
           <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-miraBlue to-blue-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg">
             {typeof q.id === 'number' ? q.id - 1 : '?'}
@@ -186,7 +190,6 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
           <p className="font-bold text-gray-800 text-base sm:text-lg leading-tight pt-0.5 sm:pt-1">{q.question}</p>
         </div>
         
-        {/* Opciones con diseño moderno tipo chip */}
         <div className="flex flex-wrap gap-2 sm:gap-3 ml-0 sm:ml-9 md:ml-11">
           {q.options?.map((opt: string, index: number) => {
             const isSelected = q.type === 'radio' ? watchValue === opt : Array.isArray(watchValue) && watchValue.includes(opt);
@@ -205,7 +208,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                     : 'bg-white border-gray-200 hover:border-miraBlue text-gray-700 shadow-sm hover:shadow-md'
                 }`}
               >
-                {/* Efecto de resplandor al seleccionar */}
+                
                 {isSelected && (
                   <motion.div
                     layoutId={`selected-${q.id}`}
@@ -216,7 +219,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                   />
                 )}
                 
-                {/* Checkbox/Radio personalizado */}
+                
                 <div className="relative z-10 flex items-center">
                   <input
                     type={q.type}
@@ -245,7 +248,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                     }}
                   />
                   
-                  {/* Icono visual del checkbox/radio */}
+                 
                   <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                     isSelected ? 'border-white bg-white/20' : 'border-gray-300 bg-white'
                   }`}>
@@ -267,14 +270,14 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                   {opt}
                 </span>
                 
-                {/* Efecto de brillo en hover */}
+               
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               </motion.label>
             );
           })}
         </div>
         
-        {/* Input "Otro" con animación */}
+       
         <AnimatePresence>
           {showOtherInput && (
             <motion.div 
@@ -352,6 +355,9 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
       ? Object.keys(neighborhoodsByMunicipality[municipalityValue]).sort()
       : []
 
+   
+    const isRequired = typeof q.required === 'boolean' ? q.required : undefined;
+
     return (
       <motion.div 
         variants={cardVariants}
@@ -372,10 +378,11 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                 ? 'border-red-400 focus:border-red-500 focus:ring-red-200' 
                 : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
             } ${q.readOnly ? 'bg-gradient-to-r from-gray-50 to-blue-50 cursor-not-allowed' : ''}`} 
+            required={isRequired} 
             value={typeof watchValue === 'string' ? watchValue : ''}
             onChange={(e) => onChange(q.id as string, e.target.value)}
           >
-            <option  value="">Selecciona tu barrio...</option>
+            <option value="">Selecciona tu barrio...</option>
             {neighborhoods.map((n: string) => (<option key={n} value={n}>{n}</option>))}
           </select>
           {getErrorMessage() && (
@@ -393,7 +400,9 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
     )
   }
 
-  // Text, Date y otros inputs
+
+  const isRequired = typeof q.required === 'boolean' ? q.required : undefined;
+  
   return (
     <motion.div 
       variants={cardVariants}
@@ -411,7 +420,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
         <input
           type={q.type === 'date' ? 'date' : 'text'}
           placeholder={q.placeholder || 'Tu respuesta...'}
-          required={q.required}
+          required={isRequired}    
           readOnly={q.readOnly}
           value={typeof watchValue === 'string' ? watchValue : ''}
           className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all text-sm sm:text-base ${
