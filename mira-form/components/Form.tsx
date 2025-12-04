@@ -124,18 +124,25 @@ questions.forEach((q) => {
     }
   } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date' || q.type === 'select') {
     if (typeof q.required === 'function') {
-      // Si required es una función, usamos refine para la validación condicional
-      schemaObj[`q_${q.id}`] = z.string().superRefine((val, ctx) => {
-        const values = ctx.parent;
-        const isRequired = q.required ? (q.required as (values: any) => boolean)(values) : false;
-        if (isRequired && (!val || val.trim() === '')) {
+        // Si required es una función, usamos superRefine para poder usar ctx y añadir issues personalizados
+        schemaObj[`q_${q.id}`] = z.string().superRefine((val, ctx) => {
+          // Obtenemos los valores actuales del formulario
+          const formValues = (ctx as any).parent;
+          // Verificamos si el campo es requerido según la lógica de la función
+          const isRequired = q.required ? (q.required as (values: any) => boolean)(formValues) : false;
+
+          // Si no es requerido o tiene un valor válido, la validación pasa (no añadimos issues)
+          if (!isRequired || (val && (val as string).trim() !== '')) {
+            return;
+          }
+
+          // Si acá llega, entonces es requerido pero está vacío: añadimos un issue personalizado
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: `${q.question} es requerido`,
+            message: `${q.question} es requerido`
           });
-        }
-      });
-    } else if (q.required) {
+        });
+      } else if (q.required) {
       schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
     } else {
       schemaObj[`q_${q.id}`] = z.string().optional()
@@ -226,7 +233,7 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
 };
 
 export default function Form({ datosPrellenados = null }: FormProps) {
-  const { control, handleSubmit, formState: { errors }, watch, setValue, trigger } = useForm<FormValues>({
+  const { control, handleSubmit, formState: { errors }, watch, setValue, trigger, getValues } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: 'onChange', // Validar en tiempo real mientras el usuario escribe
     defaultValues: {
