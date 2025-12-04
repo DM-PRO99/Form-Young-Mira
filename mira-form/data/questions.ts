@@ -529,7 +529,7 @@ export const questions: Question[] = [
       "SPD y estratificación",
       "Educación",
       "Medio ambiente",
-      "PASI y Pevencion del abuso sexual infantil",
+      "Niñez y PASI",
       "Empresarios y emprendimientos (Sello azul)",
       "Tecnológia e IA",
       "Adulto mayor",
