@@ -355,8 +355,90 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
       ? Object.keys(neighborhoodsByMunicipality[municipalityValue]).sort()
       : []
 
-   
     const isRequired = typeof q.required === 'boolean' ? q.required : undefined;
+    
+    // Estado para el input de búsqueda y el dropdown
+    const [searchTerm, setSearchTerm] = React.useState<string>('')
+    const [showDropdown, setShowDropdown] = React.useState(false)
+    const [isFocused, setIsFocused] = React.useState(false)
+    const inputRef = React.useRef<HTMLInputElement>(null)
+    const dropdownRef = React.useRef<HTMLDivElement>(null)
+
+    // Filtrar barrios basado en el término de búsqueda
+    const filteredNeighborhoods = React.useMemo(() => {
+      if (!searchTerm.trim()) return neighborhoods
+      const term = searchTerm.toLowerCase().trim()
+      return neighborhoods.filter((n: string) => 
+        n.toLowerCase().includes(term)
+      )
+    }, [searchTerm, neighborhoods])
+
+    // Sincronizar el valor del input con el watchValue
+    React.useEffect(() => {
+      const currentValue = typeof watchValue === 'string' ? watchValue : ''
+      if (currentValue && !isFocused) {
+        setSearchTerm(currentValue)
+      }
+    }, [watchValue, isFocused])
+
+    // Manejar clic fuera del componente
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node) &&
+          inputRef.current &&
+          !inputRef.current.contains(event.target as Node)
+        ) {
+          setShowDropdown(false)
+          setIsFocused(false)
+          // Si hay un valor seleccionado, restaurarlo, si no, limpiar
+          const currentValue = typeof watchValue === 'string' ? watchValue : ''
+          setSearchTerm(currentValue)
+        }
+      }
+
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [watchValue])
+
+    const handleSelect = (neighborhood: string) => {
+      onChange(q.id as string, neighborhood)
+      setSearchTerm(neighborhood)
+      setShowDropdown(false)
+      setIsFocused(false)
+      inputRef.current?.blur()
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      setSearchTerm(value)
+      setShowDropdown(true)
+      setIsFocused(true)
+      
+      // Si el valor coincide exactamente con un barrio, seleccionarlo
+      if (neighborhoods.includes(value)) {
+        onChange(q.id as string, value)
+      } else if (value === '') {
+        onChange(q.id as string, '')
+      }
+    }
+
+    const handleInputFocus = () => {
+      setIsFocused(true)
+      setShowDropdown(true)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        setShowDropdown(false)
+        setIsFocused(false)
+        inputRef.current?.blur()
+      } else if (e.key === 'Enter' && filteredNeighborhoods.length === 1) {
+        e.preventDefault()
+        handleSelect(filteredNeighborhoods[0])
+      }
+    }
 
     return (
       <motion.div 
@@ -371,20 +453,85 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
           </div>
           <label className="font-bold text-gray-800 text-base sm:text-lg leading-tight pt-0.5 sm:pt-1">{q.question}</label>
         </div>
-        <div className="ml-0 sm:ml-9 md:ml-11">
-          <select 
-            className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all text-sm sm:text-base ${
-              hasError() 
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-200' 
-                : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
-            } ${q.readOnly ? 'bg-gradient-to-r from-gray-50 to-blue-50 cursor-not-allowed' : ''}`} 
-            required={isRequired} 
-            value={typeof watchValue === 'string' ? watchValue : ''}
-            onChange={(e) => onChange(q.id as string, e.target.value)}
-          >
-            <option value="">Selecciona tu barrio...</option>
-            {neighborhoods.map((n: string) => (<option key={n} value={n}>{n}</option>))}
-          </select>
+        <div className="ml-0 sm:ml-9 md:ml-11 relative">
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={q.placeholder || "Busca y selecciona tu barrio..."}
+              required={isRequired}
+              value={searchTerm}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onKeyDown={handleKeyDown}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all text-sm sm:text-base ${
+                hasError() 
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
+              } ${q.readOnly ? 'bg-gradient-to-r from-gray-50 to-blue-50 cursor-not-allowed' : ''}`}
+              readOnly={q.readOnly}
+            />
+            {!q.readOnly && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Dropdown con resultados filtrados */}
+          <AnimatePresence>
+            {showDropdown && !q.readOnly && filteredNeighborhoods.length > 0 && municipalityValue && (
+              <motion.div
+                ref={dropdownRef}
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+              >
+                {filteredNeighborhoods.map((neighborhood: string, index: number) => {
+                  const isSelected = typeof watchValue === 'string' && watchValue === neighborhood
+                  return (
+                    <motion.div
+                      key={neighborhood}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.02 }}
+                      onClick={() => handleSelect(neighborhood)}
+                      className={`px-4 py-3 cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-miraBlue to-blue-600 text-white'
+                          : 'hover:bg-blue-50 text-gray-700'
+                      } ${index === 0 ? 'rounded-t-lg' : ''} ${index === filteredNeighborhoods.length - 1 ? 'rounded-b-lg' : ''}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm sm:text-base font-medium">{neighborhood}</span>
+                        {isSelected && (
+                          <svg className="w-4 h-4 text-white ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Mensaje cuando no hay resultados */}
+          {showDropdown && !q.readOnly && searchTerm.trim() && filteredNeighborhoods.length === 0 && municipalityValue && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-xl p-4"
+            >
+              <p className="text-sm text-gray-500 text-center">No se encontraron barrios con ese nombre</p>
+            </motion.div>
+          )}
+
           {getErrorMessage() && (
             <motion.p
               initial={{ opacity: 0, y: -5 }}

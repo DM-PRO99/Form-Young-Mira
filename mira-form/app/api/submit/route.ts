@@ -4,7 +4,6 @@ import { appendRow } from "@/lib/googleSheets";
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    console.log(" Data recibida:", data);
 
     await appendRow("Sheet1", data);
 
