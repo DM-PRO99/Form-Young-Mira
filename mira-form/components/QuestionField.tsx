@@ -479,7 +479,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
               </div>
             )}
           </div>
-
+ 
           {/* Dropdown con resultados filtrados */}
           <AnimatePresence>
             {showDropdown && !q.readOnly && filteredNeighborhoods.length > 0 && municipalityValue && (
