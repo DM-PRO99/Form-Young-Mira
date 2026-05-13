@@ -42,6 +42,7 @@ const COLUMN_ORDER = [
   "q_23",          // Tiempo conociendo la iglesia
   "q_24",          // Horario de culto
   "q_25",          // Áreas de trabajo o conocimiento
+  "q_autorizacion_menor", // Autorización acudiente / mayor de edad (Ley 1581) — al final para compatibilidad con filas ya guardadas
 ];
 
 // Nombres legibles para los headers
@@ -74,6 +75,7 @@ const COLUMN_HEADERS: { [key: string]: string } = {
   "q_23": "Tiempo Conociendo la Iglesia",
   "q_24": "Horario de Culto Preferido",
   "q_25": "¿En cual de estas áreas has trabajado o tienes conocimiento?",
+  "q_autorizacion_menor": "Autorización acudiente o mayor de edad (Ley 1581)",
 };
 
 // Función auxiliar para convertir número de columna a letra de Excel (1 = A, 2 = B, etc.)
@@ -157,9 +159,10 @@ export async function appendRow(sheetName: string, data: any) {
 
     if (numeroDocumento) {
       // Obtener todos los datos de la hoja (excluyendo headers)
+      const lastDataColumn = columnNumberToLetter(COLUMN_ORDER.length);
       const allData = await sheet.get({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A2:Z`, // Desde la fila 2 en adelante (sin headers)
+        range: `${sheetName}!A2:${lastDataColumn}`, // Todas las columnas de datos (sin header)
       });
 
       const rows = allData.data.values || [];

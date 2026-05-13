@@ -46,6 +46,10 @@ const calculateAge = (dateString: string) => {
   return age
 }
 
+const AUTORIZACION_ACUDIENTE_SI = 'Sí, cuento con autorización de mi acudiente.'
+const AUTORIZACION_ACUDIENTE_NO = 'No cuento con autorización de mi acudiente.'
+const AUTORIZACION_MAYOR_EDAD = 'Soy mayor de edad.'
+
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
   // if (q.id === 1) return;
@@ -169,6 +173,7 @@ interface FormProps {
 // Función para mapear los headers de Google Sheets a los campos del formulario
 const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValues> => {
   const mapeo: Record<string, string> = {
+    "Autorización acudiente o mayor de edad (Ley 1581)": "q_autorizacion_menor",
     "Aceptación Política de Datos": "q_1",
     "Nombre Completo": "q_2",
     "Género": "q_3",
@@ -318,6 +323,43 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       }
     }
 
+    const autorizacionMenor = data['q_autorizacion_menor'] as string | undefined
+    if (autorizacionMenor === AUTORIZACION_ACUDIENTE_NO) {
+      setNotification({
+        show: true,
+        type: 'error',
+        message:
+          'No es posible continuar sin la autorización del padre, madre o acudiente para el tratamiento de datos personales. Si es mayor de edad, seleccione la opción «Soy mayor de edad».',
+      })
+      return
+    }
+    if (birthDate) {
+      const age = calculateAge(birthDate)
+      if (!isNaN(age)) {
+        if (age < 18 && autorizacionMenor === AUTORIZACION_MAYOR_EDAD) {
+          setNotification({
+            show: true,
+            type: 'error',
+            message:
+              'Según la fecha de nacimiento usted es menor de edad. Indique si cuenta con la autorización de su acudiente.',
+          })
+          return
+        }
+        if (
+          age >= 18 &&
+          (autorizacionMenor === AUTORIZACION_ACUDIENTE_SI ||
+            autorizacionMenor === AUTORIZACION_ACUDIENTE_NO)
+        ) {
+          setNotification({
+            show: true,
+            type: 'error',
+            message: 'Si es mayor de edad, seleccione la opción «Soy mayor de edad».',
+          })
+          return
+        }
+      }
+    }
+
     // Guardar los datos y mostrar el modal de confirmación
     setPendingSubmitData(data)
     setShowHabeasDataModal(true)
@@ -341,6 +383,7 @@ export default function Form({ datosPrellenados = null }: FormProps) {
     
     // Inicializar con TODOS los campos vacíos
     const payload: any = {
+      q_autorizacion_menor: '',
       q_1: 'Sí',
       q_2: '',
       q_3: '',

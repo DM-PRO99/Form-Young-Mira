@@ -26,6 +26,7 @@ async function testSubmit() {
     
     // Datos de prueba
     const testData = {
+      q_autorizacion_menor: 'Soy mayor de edad.',
       q_1: 'Sí',
       q_2: 'Juan Pérez',
       q_3: 'Masculino',
