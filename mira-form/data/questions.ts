@@ -562,6 +562,18 @@ export const questions: Question[] = [
     required: true,
   }, */
   {
+    id: "autorizacion_menor",
+    question:
+      "En caso de ser menor de edad (menor de 18 años), indique si cuenta con la autorización de su padre, madre o acudiente para el tratamiento de sus datos personales con los fines relacionados en la presente encuesta, de conformidad con la Ley 1581 de 2012 y demás normas sobre protección de datos personales.",
+    type: "radio",
+    options: [
+      "Sí, cuento con autorización de mi acudiente.",
+      "No cuento con autorización de mi acudiente.",
+      "Soy mayor de edad.",
+    ],
+    required: true,
+  },
+  {
     id: 2,
     question: "Nombre completo",
     type: "text",
