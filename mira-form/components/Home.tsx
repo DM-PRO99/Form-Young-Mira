@@ -162,38 +162,58 @@ const Home = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        initial={{ opacity: 0, scale: 0.9, rotateY: 15, rotateX: 5 }}
+        animate={{ opacity: 1, scale: 1, rotateY: 0, rotateX: 0 }}
+        transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+        whileHover={{ scale: 1.02, rotateY: 2, rotateX: -1 }}
+        className="w-full max-w-md perspective-1000"
       >
-        <div className="rounded-2xl sm:rounded-3xl shadow-2xl border border-blue-100 overflow-hidden">
+        <div className="rounded-2xl sm:rounded-3xl shadow-2xl border border-blue-100 overflow-hidden bg-white transform-style-3d">
           {/* Header con gradiente */}
-          <div className="bg-gradient-to-r from-miraBlue via-blue-600 to-indigo-600 p-5 sm:p-6 md:p-8 text-center">
+          <div className="bg-gradient-to-r from-miraBlue via-blue-600 to-indigo-600 p-5 sm:p-6 md:p-8 text-center relative overflow-hidden">
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring" }}
+              initial={{ scale: 0.94, opacity: 0, rotateZ: -180 }}
+              animate={{ scale: 1, opacity: 1, rotateZ: 0 }}
+              transition={{ delay: 0.12, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
               className="mb-3 sm:mb-4"
             >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
                 <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3-4a2 2 0 100 4 2 2 0 000-4zm0 0a2 2 0 110-4m0 4V9m0 0V7a2 2 0 110-4"></path>
                 </svg>
               </div>
             </motion.div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 px-2">
+            <motion.h1
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.25, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              className="text-2xl sm:text-3xl font-bold text-white mb-2 px-2"
+            >
               Encuesta Juventudes MIRA
-            </h1>
-            <p className="text-blue-100 text-xs sm:text-sm px-2">
+            </motion.h1>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              className="text-blue-100 text-xs sm:text-sm px-2"
+            >
               Ingresa tu número de Documento para comenzar
-            </p>
+            </motion.p>
           </div>
 
           {/* Formulario */}
-          <div className="p-4 sm:p-6 md:p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+            className="p-4 sm:p-6 md:p-8"
+          >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
-              <div>
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.45, duration: 0.4 }}
+              >
                 <label htmlFor="cedula" className="block text-sm font-semibold text-gray-700 mb-2">
                   Número de Documento
                 </label>
@@ -226,8 +246,9 @@ const Home = () => {
                   )}
                 {errors.cedula && (
                   <motion.p
-                    initial={{ opacity: 0, y: -5 }}
+                    initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                     className="mt-2 text-xs sm:text-sm text-red-600 flex items-center gap-1"
                   >
                     <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -236,15 +257,18 @@ const Home = () => {
                     <span>{errors.cedula.message}</span>
                   </motion.p>
                 )}
-              </div>
+              </motion.div>
 
               <div className='flex flex-col sm:flex-row gap-2 sm:gap-2'>
                 <motion.button
                   type="submit"
                   disabled={loading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-3 sm:py-4 border-2 border-gray-300 rounded-[2px] text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ x: -30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                  className="w-full py-3 sm:py-4 border-2 border-gray-300 rounded-[2px] text-base sm:text-lg font-semibold shadow-md hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200"
                   onClick={redirectToRegisterForm}
                 >
                   <span>Registrarse</span>
@@ -253,9 +277,12 @@ const Home = () => {
                 <motion.button
                   type="submit"
                   disabled={loading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full btn-primary py-3 sm:py-4 rounded-[2px] text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.55, duration: 0.4 }}
+                  className="w-full btn-primary py-3 sm:py-4 rounded-[2px] text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transition-all duration-200"
                   onClick={handleSubmit(onSubmit)}
                 >
                   {loading ? (
@@ -276,12 +303,28 @@ const Home = () => {
             </form>
 
             {/* Información adicional */}
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
-              <p className="text-xs text-gray-500 text-center px-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
+              className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200"
+            >
+              <p className="text-xs text-gray-500 text-center px-2 mb-4">
                 🔒 Tus datos están protegidos y serán utilizados únicamente para fines de la encuesta
               </p>
-            </div>
-          </div>
+              <div className="text-center">
+                <a
+                  href="/admin/login"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-miraBlue via-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                  <span>Acceso coordinadores y admin</span>
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </motion.div>
     </div>
