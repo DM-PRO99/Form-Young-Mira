@@ -4,6 +4,15 @@
 
 :root {
   --mira-blue: #00289f;
+
+  /* Easings — nunca usar ease-in en UI */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Duraciones — techo de 300ms para UI interactivo */
+  --dur-press: 140ms;
+  --dur-pop: 180ms;
+  --dur-modal: 240ms;
 }
 
 body {
@@ -16,9 +25,42 @@ body {
 }
 
 .radio-group label {
-  @apply hover:bg-blue-50 transition-colors;
+  @apply hover:bg-blue-50;
+  transition: background-color 160ms var(--ease-out);
 }
 
 .btn-primary {
-  @apply bg-miraBlue text-white hover:bg-blue-800 transition-colors;
+  @apply bg-miraBlue text-white hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed;
+  transition: background-color 160ms var(--ease-out),
+              transform var(--dur-press) var(--ease-out),
+              box-shadow 160ms var(--ease-out);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Shimmer para barra de progreso */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+/* Respetar prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    animation: none;
+  }
+
+  .animate-spin {
+    animation-duration: 1.5s;
+  }
+
+  .animate-pulse {
+    animation: none;
+  }
 }

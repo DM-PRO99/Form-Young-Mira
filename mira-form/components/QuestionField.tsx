@@ -45,14 +45,14 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
 
   // Animación de entrada para las cards
   const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
+    hidden: { opacity: 0, y: 14, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      y: 0,
       scale: 1,
-      transition: { 
-        duration: 0.4,
-        ease: "easeOut" as const
+      transition: {
+        duration: 0.3,
+        ease: [0.23, 1, 0.32, 1] as [number, number, number, number]
       }
     }
   };
@@ -66,10 +66,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
         className="mb-6 relative group"
       >
         {/* Card con efecto glassmorphism */}
-        <div className="relative bg-gradient-to-br from-white/90 via-blue-50/50 to-indigo-50/50 backdrop-blur-xl p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-blue-200/50 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden">
-          {/* Efecto de brillo animado */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-          
+        <div className="relative bg-gradient-to-br from-white/90 via-blue-50/50 to-indigo-50/50 backdrop-blur-xl p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
           {/* Decoración de esquina */}
           <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-miraBlue/10 to-transparent rounded-bl-full"></div>
           
@@ -83,11 +80,11 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
               const isFieldRequired = typeof f.required === 'boolean' ? f.required : undefined;
 
               return (
-              <motion.div 
+              <motion.div
                 key={f.name}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.06, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
                 className="relative"
               >
                 <label className="block text-xs sm:text-sm font-semibold mb-2 text-gray-700 flex items-center gap-2">
@@ -195,17 +192,16 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
             const isSelected = q.type === 'radio' ? watchValue === opt : Array.isArray(watchValue) && watchValue.includes(opt);
             
             return (
-              <motion.label 
+              <motion.label
                 key={opt}
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className={`group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden ${
-                  isSelected 
-                    ? 'bg-gradient-to-r from-miraBlue to-blue-600 border-miraBlue text-white shadow-lg shadow-blue-500/30' 
-                    : 'bg-white border-gray-200 hover:border-miraBlue text-gray-700 shadow-sm hover:shadow-md'
+                transition={{ delay: index * 0.04, duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                whileTap={{ scale: 0.97 }}
+                className={`group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-3.5 rounded-xl sm:rounded-2xl border-2 cursor-pointer overflow-hidden ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-miraBlue to-blue-600 border-miraBlue text-white shadow-lg shadow-blue-500/30'
+                    : 'bg-white border-gray-200 hover:border-miraBlue text-gray-700 shadow-sm hover:shadow-md [transition:border-color_160ms_cubic-bezier(0.23,1,0.32,1),box-shadow_160ms_cubic-bezier(0.23,1,0.32,1)]'
                 }`}
               >
                 
@@ -248,14 +244,14 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                     }}
                   />
                   
-                 
-                  <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                  <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors duration-150 ${
                     isSelected ? 'border-white bg-white/20' : 'border-gray-300 bg-white'
                   }`}>
                     {isSelected && (
                       <motion.svg
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.14, ease: [0.23, 1, 0.32, 1] }}
                         className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white"
                         fill="currentColor"
                         viewBox="0 0 12 12"
@@ -269,9 +265,6 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                 <span className={`text-xs sm:text-sm font-semibold relative z-10 break-words ${isSelected ? 'text-white' : 'text-gray-700'}`}>
                   {opt}
                 </span>
-                
-               
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               </motion.label>
             );
           })}
@@ -485,22 +478,20 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
             {showDropdown && !q.readOnly && filteredNeighborhoods.length > 0 && municipalityValue && (
               <motion.div
                 ref={dropdownRef}
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                initial={{ opacity: 0, y: -4, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12, ease: [0.23, 1, 0.32, 1] } }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                style={{ transformOrigin: 'top center' }}
                 className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
               >
                 {filteredNeighborhoods.map((neighborhood: string, index: number) => {
                   const isSelected = typeof watchValue === 'string' && watchValue === neighborhood
                   return (
-                    <motion.div
+                    <div
                       key={neighborhood}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.02 }}
                       onClick={() => handleSelect(neighborhood)}
-                      className={`px-4 py-3 cursor-pointer transition-colors ${
+                      className={`px-4 py-3 cursor-pointer transition-colors duration-100 ${
                         isSelected
                           ? 'bg-gradient-to-r from-miraBlue to-blue-600 text-white'
                           : 'hover:bg-blue-50 text-gray-700'
@@ -514,7 +505,7 @@ export default function QuestionField({ q, watchValue, onChange, municipalityVal
                           </svg>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   )
                 })}
               </motion.div>

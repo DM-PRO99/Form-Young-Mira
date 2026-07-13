@@ -525,24 +525,26 @@ export default function Form({ datosPrellenados = null }: FormProps) {
             className="absolute top-0 left-0 h-full bg-gradient-to-r from-miraBlue via-blue-500 to-indigo-600 rounded-full shadow-lg"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
           </motion.div>
         </div>
         {progress > 0 && progress < 100 && (
-          <motion.p 
-            initial={{ opacity: 0, y: -5 }}
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className="text-xs text-gray-500 mt-2 text-center"
           >
             ¡Vas muy bien! Sigue completando el formulario 🚀
           </motion.p>
         )}
         {progress === 100 && (
-          <motion.p 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className="text-xs text-green-600 font-semibold mt-2 text-center"
           >
             ✨ ¡Formulario completo! Ya puedes enviarlo
@@ -602,9 +604,10 @@ export default function Form({ datosPrellenados = null }: FormProps) {
             onClick={cancelSubmit}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] } }}
+              transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             >
@@ -654,7 +657,7 @@ export default function Form({ datosPrellenados = null }: FormProps) {
                 <button
                   type="button"
                   onClick={confirmSubmit}
-                  className="flex-1 btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                  className="flex-1 btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg"
                 >
                   Aceptar y Enviar
                 </button>
@@ -755,9 +758,9 @@ export default function Form({ datosPrellenados = null }: FormProps) {
         })}
 
         <div className="mt-8">
-          <button 
-            className="btn-primary w-full py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all" 
-            type="submit" 
+          <button
+            className="btn-primary w-full py-3 text-lg font-semibold rounded-xl shadow-lg"
+            type="submit"
             disabled={loading}
           >
             {loading ? 'Enviando...' : 'Enviar respuestas'}
