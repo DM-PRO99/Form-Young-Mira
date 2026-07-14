@@ -14,6 +14,7 @@ import {
   UserCheck,
   UserX,
   Plus,
+  Download,
 } from 'lucide-react'
 
 interface AdminUser {
@@ -602,6 +603,7 @@ export default function UsuariosPage() {
   const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(
     null
   )
+  const [importing, setImporting] = useState(false)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -646,6 +648,32 @@ export default function UsuariosPage() {
     }
   }
 
+  async function handleImportFromSheets() {
+    const sheetName = prompt('Ingresa el nombre de la hoja de Google Sheets:')
+    if (!sheetName) return
+
+    setImporting(true)
+    try {
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetName }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.error || `Error al importar (HTTP ${res.status})`)
+      }
+
+      const result = await res.json()
+      toast.success(result.message)
+    } catch (error: any) {
+      toast.error(error.message || 'Error al importar datos')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div>
@@ -683,13 +711,32 @@ export default function UsuariosPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-semibold text-zinc-900">Usuarios</h1>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-[#14286E] hover:bg-[#1E3A9E] text-white rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms]"
-          >
-            <UserPlus className="w-4 h-4" />
-            Crear coordinador
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleImportFromSheets}
+              disabled={importing}
+              className="flex items-center gap-2 px-4 py-2 text-sm border border-[#14286E] text-[#14286E] hover:bg-[#EEF2FD] rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {importing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Importar de Sheets
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-[#14286E] hover:bg-[#1E3A9E] text-white rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms]"
+            >
+              <UserPlus className="w-4 h-4" />
+              Crear coordinador
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -728,7 +775,7 @@ export default function UsuariosPage() {
 
                 {/* Municipios */}
                 <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                  {user.municipios.map((m) => (
+                  {(user.municipios || []).map((m) => (
                     <span
                       key={m}
                       className="bg-zinc-100 text-zinc-600 text-xs px-2 py-0.5 rounded-full"
@@ -739,7 +786,7 @@ export default function UsuariosPage() {
                   {user.role === 'coordinador' && (
                     <MunicipioPopover
                       userId={user._id}
-                      currentMunicipios={user.municipios}
+                      currentMunicipios={user.municipios || []}
                       onUpdated={handleUserUpdated}
                     />
                   )}

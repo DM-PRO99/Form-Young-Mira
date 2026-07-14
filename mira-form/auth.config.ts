@@ -9,14 +9,14 @@ export default {
       if (user) {
         token.id = user.id ?? ''
         token.role = user.role
-        token.municipios = user.municipios
+        // No incluir municipios en el JWT para evitar error de serialización
       }
       return token
     },
     session({ session, token }) {
       session.user.id = token.id as string
       session.user.role = token.role as string
-      session.user.municipios = token.municipios as string[]
+      // Municipios se obtendrán de la base de datos cuando sea necesario
       return session
     },
     authorized({ auth: session, request: { nextUrl } }) {

@@ -17,7 +17,6 @@ export default async function ProtectedLayout({
     name: session.user.name ?? null,
     email: session.user.email ?? null,
     role: session.user.role,
-    municipios: session.user.municipios,
   }
 
   return (

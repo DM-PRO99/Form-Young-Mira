@@ -213,3 +213,50 @@ export async function appendRow(sheetName: string, data: any) {
     throw new Error(`Error al guardar en Google Sheets: ${error.message}`);
   }
 }
+
+export async function getSheetData(sheetName: string) {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  if (!sheetId) throw new Error("Falta GOOGLE_SHEET_ID en .env");
+
+  try {
+    // Primero obtener información del spreadsheet para verificar que la hoja existe
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+
+    const availableSheets = spreadsheet.data.sheets || [];
+    const sheetExists = availableSheets.some(s => s.properties?.title === sheetName);
+
+    if (!sheetExists) {
+      const sheetNames = availableSheets.map(s => s.properties?.title).filter(Boolean);
+      throw new Error(
+        `La hoja "${sheetName}" no existe. Hojas disponibles: ${sheetNames.join(', ')}`
+      );
+    }
+
+    // Usar la API de values para obtener los datos
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length === 0) return [];
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    return dataRows.map((row: any) => {
+      const obj: any = {};
+      headers.forEach((header: any, index: number) => {
+        const key = Object.keys(COLUMN_HEADERS).find(k => COLUMN_HEADERS[k] === header);
+        if (key) {
+          obj[key] = row[index] || "";
+        }
+      });
+      return obj;
+    });
+  } catch (error: any) {
+    throw new Error(`Error al leer de Google Sheets: ${error.message}`);
+  }
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
+import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
 
 type MongoFilter = Record<string, unknown>
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { role, municipios: sessionMunicipios } = session.user
+  const { role } = session.user
   const { searchParams } = req.nextUrl
 
   const q = searchParams.get('q') ?? ''
@@ -68,6 +69,8 @@ export async function GET(req: NextRequest) {
   const dateTo = searchParams.get('dateTo') ?? ''
 
   await connectToMongoDB()
+
+  const sessionMunicipios = role !== 'admin' ? await getUserMunicipios(session.user.id) : []
 
   const filters: MongoFilter[] = []
 

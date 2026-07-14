@@ -11,7 +11,7 @@ interface AdminNavUser {
   name?: string | null
   email?: string | null
   role: string
-  municipios: string[]
+  municipios?: string[]
 }
 
 interface AdminNavProps {

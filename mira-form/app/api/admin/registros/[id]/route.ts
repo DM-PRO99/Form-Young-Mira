@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
+import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
 import SyncFailure from '@/models/SyncFailure'
 import { appendRow } from '@/lib/googleSheets'
@@ -13,15 +14,18 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
-  const { role, municipios } = session.user
+  const { role } = session.user
 
   await connectToMongoDB()
 
   const submission = await Submission.findById(id).lean()
   if (!submission) return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 })
 
-  if (role !== 'admin' && !municipios.includes(submission.municipio)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (role !== 'admin') {
+    const municipios = await getUserMunicipios(session.user.id)
+    if (!municipios.includes(submission.municipio)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
   }
 
   return NextResponse.json({ data: submission })
@@ -36,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
-  const { role, municipios } = session.user
+  const { role } = session.user
 
   const body: unknown = await req.json()
   const parsed = updateSchema.safeParse(body)
@@ -49,8 +53,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const submission = await Submission.findById(id)
   if (!submission) return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 })
 
-  if (role !== 'admin' && !municipios.includes(submission.municipio)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  if (role !== 'admin') {
+    const municipios = await getUserMunicipios(session.user.id)
+    if (!municipios.includes(submission.municipio)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
   }
 
   const newDatos = { ...(submission.datos as Record<string, unknown>), ...parsed.data.datos }
