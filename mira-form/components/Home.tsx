@@ -241,9 +241,9 @@ const Home = () => {
                     disabled={loading}
                   />
                 </div>
-                  {notFound && (
-                    <p className='text-red-300'>La cedula no se encuentra registrada</p>
-                  )}
+                {notFound && (
+                  <p className='text-red-300'>La cedula no se encuentra registrada</p>
+                )}
                 {errors.cedula && (
                   <motion.p
                     initial={{ opacity: 0, y: -4 }}

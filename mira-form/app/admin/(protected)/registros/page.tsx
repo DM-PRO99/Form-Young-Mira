@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import {
   Search,
   Download,
@@ -63,13 +62,14 @@ function SkeletonRow() {
 
 export default function RegistrosPage() {
   const router = useRouter()
-  const { data: session } = useSession()
 
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<'admin' | 'coordinador'>('admin')
+  const [userId, setUserId] = useState<string>('')
 
   const [searchInput, setSearchInput] = useState('')
   const [q, setQ] = useState('')
@@ -80,9 +80,30 @@ export default function RegistrosPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const limit = 20
 
-  const isAdmin = session?.user.role === 'admin'
-  const userMunicipios =
-    !isAdmin && session?.user.municipios ? session.user.municipios : MUNICIPIOS
+  const [userMunicipios, setUserMunicipios] = useState<string[]>(MUNICIPIOS)
+
+  // Obtener información del usuario desde el layout
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (res.ok) {
+          const userData = await res.json()
+          setUserRole(userData.role || 'admin')
+          setUserId(userData.id || '')
+
+          if (userData.role !== 'admin') {
+            setUserMunicipios(
+              userData.municipios?.length ? userData.municipios : MUNICIPIOS
+            )
+          }
+        }
+      } catch (error) {
+        console.error('Error al obtener información del usuario:', error)
+      }
+    }
+    fetchUserInfo()
+  }, [])
 
   const fetchData = useCallback(
     async (currentPage: number) => {

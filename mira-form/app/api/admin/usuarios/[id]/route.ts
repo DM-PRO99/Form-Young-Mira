@@ -14,6 +14,26 @@ const updateSchema = z.object({
   password: z.string().min(8).optional(),
 })
 
+export async function GET(req: NextRequest, { params }: RouteContext) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { id } = await params
+  const isAdmin = session.user.role === 'admin'
+  const isOwnProfile = session.user.id === id
+
+  if (!isAdmin && !isOwnProfile) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  await connectToMongoDB()
+
+  const user = await User.findById(id).select('-passwordHash').lean()
+  if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+
+  return NextResponse.json({ data: user })
+}
+
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

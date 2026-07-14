@@ -5,7 +5,7 @@ declare module 'next-auth' {
     user: {
       id: string
       role: string
-      municipios: string[]
+      // municipios NO viaja en la sesión: se lee de la BD (lib/rbac.ts)
     } & DefaultSession['user']
   }
 
@@ -19,6 +19,5 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string
     role: string
-    municipios: string[]
   }
 }
