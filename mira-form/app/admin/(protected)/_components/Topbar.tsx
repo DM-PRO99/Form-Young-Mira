@@ -11,7 +11,7 @@ interface PageMeta {
 
 function getPageMeta(pathname: string): PageMeta {
   if (pathname === '/admin/dashboard') {
-    return { title: 'Dashboard', subtitle: 'Resumen general de los registros' }
+    return { title: 'Gestión de Juventudes', subtitle: 'Resumen general de los registros' }
   }
   if (pathname === '/admin/registros') {
     return { title: 'Registros', subtitle: 'Jóvenes registrados en el formulario' }

@@ -88,11 +88,15 @@ body {
 }
 
 .section-panel {
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .section-panel:hover {
-  transform: perspective(1400px) rotateY(-1.1deg) translateY(-2px);
+  transform: perspective(1400px) rotateY(-1.1deg) translateY(-4px);
+  box-shadow: 0 20px 38px -18px rgba(0, 40, 159, 0.24);
+  border-color: #CFD9F5;
 }
 
 .chart-bar {
