@@ -13,7 +13,12 @@ export async function GET() {
   }
 
   await connectToMongoDB()
-  const users = await User.find().sort({ createdAt: -1 }).select('-passwordHash').lean()
+  // La colección de usuarios se comparte con otros proyectos en el mismo cluster/DB;
+  // filtramos por los roles propios de mira-form para no mezclar cuentas ajenas.
+  const users = await User.find({ role: { $in: ['admin', 'coordinador'] } })
+    .sort({ createdAt: -1 })
+    .select('-passwordHash')
+    .lean()
   return NextResponse.json({ data: users })
 }
 
