@@ -50,13 +50,16 @@ function getInitials(nombre: string, email: string): string {
 function roleBadge(role: 'admin' | 'coordinador') {
   if (role === 'admin') {
     return (
-      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+      <span
+        className="px-2 py-0.5 rounded-full text-xs font-medium"
+        style={{ backgroundColor: '#F4EFFB', color: '#5B3E9E' }}
+      >
         Administrador
       </span>
     )
   }
   return (
-    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-tint text-primary">
       Coordinador
     </span>
   )
@@ -134,27 +137,23 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.97 }}
         transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 overflow-hidden"
+        className="relative bg-surface rounded-section shadow-xl w-full max-w-md z-10 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-base font-semibold text-zinc-900">
-            Crear coordinador
-          </h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-base font-semibold text-ink">Crear coordinador</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
+            className="p-1 rounded-md text-ink-faint hover:text-ink hover:bg-canvas transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" strokeWidth={1.8} />
           </button>
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)} className="px-6 py-5 space-y-4">
-          {fieldError && (
-            <p className="text-sm text-red-600">{fieldError}</p>
-          )}
+          {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            <label className="block text-sm font-medium text-ink mb-1.5">
               Nombre completo
             </label>
             <input
@@ -162,13 +161,13 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
               required
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
               placeholder="Nombre del coordinador"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            <label className="block text-sm font-medium text-ink mb-1.5">
               Correo electrónico
             </label>
             <input
@@ -176,15 +175,13 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
               placeholder="correo@ejemplo.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">
-              Contraseña
-            </label>
+            <label className="block text-sm font-medium text-ink mb-1.5">Contraseña</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -192,41 +189,38 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+                className="w-full px-3 py-2.5 pr-10 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
                 placeholder="Mínimo 8 caracteres"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20 rounded"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 rounded"
                 aria-label={showPassword ? 'Ocultar' : 'Mostrar'}
               >
                 {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-4 h-4" strokeWidth={1.8} />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" strokeWidth={1.8} />
                 )}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Municipios asignados
             </label>
             <div className="grid grid-cols-2 gap-2">
               {ALL_MUNICIPIOS.map((m) => (
-                <label
-                  key={m}
-                  className="flex items-center gap-2 cursor-pointer select-none"
-                >
+                <label key={m} className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={selectedMunicipios.includes(m)}
                     onChange={() => toggleMunicipio(m)}
-                    className="w-4 h-4 rounded border-zinc-300 accent-[#1E3A9E]"
+                    className="w-4 h-4 rounded border-border-input accent-primary"
                   />
-                  <span className="text-sm text-zinc-700">{m}</span>
+                  <span className="text-sm text-ink">{m}</span>
                 </label>
               ))}
             </div>
@@ -237,19 +231,19 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm border border-zinc-300 bg-white rounded-lg font-medium text-zinc-700 hover:bg-zinc-50 transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60"
+              className="flex-1 px-4 py-2.5 text-sm border border-border-input bg-white rounded-field font-medium text-ink hover:bg-canvas transition duration-150 active:scale-[0.97] disabled:opacity-60"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#14286E] hover:bg-[#1E3A9E] text-white rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60"
+              className="btn-primary-3d flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-white rounded-field font-medium disabled:opacity-60"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4" strokeWidth={1.8} />
               )}
               Crear
             </button>
@@ -317,32 +311,25 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.97 }}
         transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm z-10 overflow-hidden"
+        className="relative bg-surface rounded-section shadow-xl w-full max-w-sm z-10 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-base font-semibold text-zinc-900">
-            Resetear contraseña
-          </h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-base font-semibold text-ink">Resetear contraseña</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
+            className="p-1 rounded-md text-ink-faint hover:text-ink hover:bg-canvas transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" strokeWidth={1.8} />
           </button>
         </div>
-        <form
-          onSubmit={(e) => void handleSubmit(e)}
-          className="px-6 py-5 space-y-4"
-        >
-          <p className="text-sm text-zinc-500">
+        <form onSubmit={(e) => void handleSubmit(e)} className="px-6 py-5 space-y-4">
+          <p className="text-sm text-ink-muted">
             Nueva contraseña para{' '}
-            <span className="font-medium text-zinc-800">{user.nombre}</span>
+            <span className="font-medium text-ink">{user.nombre}</span>
           </p>
-          {fieldError && (
-            <p className="text-sm text-red-600">{fieldError}</p>
-          )}
+          {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            <label className="block text-sm font-medium text-ink mb-1.5">
               Nueva contraseña
             </label>
             <div className="relative">
@@ -352,24 +339,24 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+                className="w-full px-3 py-2.5 pr-10 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
                 placeholder="Mínimo 8 caracteres"
               />
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20 rounded"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 rounded"
               >
                 {showPw ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-4 h-4" strokeWidth={1.8} />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" strokeWidth={1.8} />
                 )}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            <label className="block text-sm font-medium text-ink mb-1.5">
               Confirmar contraseña
             </label>
             <input
@@ -377,7 +364,7 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
               placeholder="Repite la contraseña"
             />
           </div>
@@ -386,19 +373,19 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm border border-zinc-300 bg-white rounded-lg font-medium text-zinc-700 hover:bg-zinc-50 transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60"
+              className="flex-1 px-4 py-2.5 text-sm border border-border-input bg-white rounded-field font-medium text-ink hover:bg-canvas transition duration-150 active:scale-[0.97] disabled:opacity-60"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#14286E] hover:bg-[#1E3A9E] text-white rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60"
+              className="btn-primary-3d flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-white rounded-field font-medium disabled:opacity-60"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <KeyRound className="w-4 h-4" />
+                <KeyRound className="w-4 h-4" strokeWidth={1.8} />
               )}
               Guardar
             </button>
@@ -417,11 +404,7 @@ interface MunicipioPopoverProps {
   onUpdated: (updated: AdminUser) => void
 }
 
-function MunicipioPopover({
-  userId,
-  currentMunicipios,
-  onUpdated,
-}: MunicipioPopoverProps) {
+function MunicipioPopover({ userId, currentMunicipios, onUpdated }: MunicipioPopoverProps) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<string[]>(currentMunicipios)
   const [saving, setSaving] = useState(false)
@@ -468,9 +451,9 @@ function MunicipioPopover({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-xs border border-dashed border-zinc-300 text-zinc-500 px-2 py-0.5 rounded-full hover:border-[#1E3A9E] hover:text-[#1E3A9E] transition-colors duration-150"
+        className="flex items-center gap-1 text-xs border border-dashed border-border-input text-ink-muted px-2 py-0.5 rounded-full hover:border-primary hover:text-primary transition-colors duration-150"
       >
-        <Plus className="w-3 h-3" />
+        <Plus className="w-3 h-3" strokeWidth={1.8} />
         Municipio
       </button>
       <AnimatePresence>
@@ -480,25 +463,25 @@ function MunicipioPopover({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -4 }}
             transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute left-0 top-7 z-20 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg py-2"
+            className="absolute left-0 top-7 z-20 w-48 bg-surface border border-border rounded-card shadow-elevated py-2"
           >
             {saving && (
               <div className="flex items-center justify-center py-1">
-                <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
+                <Loader2 className="w-3 h-3 animate-spin text-ink-faint" />
               </div>
             )}
             {ALL_MUNICIPIOS.map((m) => (
               <label
                 key={m}
-                className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-zinc-50 transition-colors duration-100"
+                className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-canvas transition-colors duration-100"
               >
                 <input
                   type="checkbox"
                   checked={selected.includes(m)}
                   onChange={() => void handleToggle(m)}
-                  className="w-4 h-4 rounded border-zinc-300 accent-[#1E3A9E]"
+                  className="w-4 h-4 rounded border-border-input accent-primary"
                 />
-                <span className="text-sm text-zinc-700">{m}</span>
+                <span className="text-sm text-ink">{m}</span>
               </label>
             ))}
           </motion.div>
@@ -516,11 +499,7 @@ interface UserRowMenuProps {
   onToggleActivo: () => void
 }
 
-function UserRowMenu({
-  user,
-  onResetPassword,
-  onToggleActivo,
-}: UserRowMenuProps) {
+function UserRowMenu({ user, onResetPassword, onToggleActivo }: UserRowMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -538,10 +517,10 @@ function UserRowMenu({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
+        className="p-1.5 rounded-md border border-transparent text-ink-faint hover:text-ink hover:border-border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
         aria-label="Opciones"
       >
-        <MoreHorizontal className="w-4 h-4" />
+        <MoreHorizontal className="w-4 h-4" strokeWidth={1.8} />
       </button>
       <AnimatePresence>
         {open && (
@@ -550,16 +529,16 @@ function UserRowMenu({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -4 }}
             transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 top-8 z-20 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg py-1"
+            className="absolute right-0 top-8 z-20 w-48 bg-surface border border-border rounded-card shadow-elevated py-1"
           >
             <button
               onClick={() => {
                 setOpen(false)
                 onResetPassword()
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors duration-100"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-ink hover:bg-canvas transition-colors duration-100"
             >
-              <KeyRound className="w-4 h-4 text-zinc-400" />
+              <KeyRound className="w-4 h-4 text-ink-faint" strokeWidth={1.8} />
               Resetear contraseña
             </button>
             <button
@@ -570,18 +549,18 @@ function UserRowMenu({
               className={
                 'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100 ' +
                 (user.activo
-                  ? 'text-red-600 hover:bg-red-50'
-                  : 'text-green-700 hover:bg-green-50')
+                  ? 'text-danger hover:bg-danger-tint'
+                  : 'text-success hover:bg-success-tint')
               }
             >
               {user.activo ? (
                 <>
-                  <UserX className="w-4 h-4" />
+                  <UserX className="w-4 h-4" strokeWidth={1.8} />
                   Desactivar
                 </>
               ) : (
                 <>
-                  <UserCheck className="w-4 h-4" />
+                  <UserCheck className="w-4 h-4" strokeWidth={1.8} />
                   Activar
                 </>
               )}
@@ -595,15 +574,16 @@ function UserRowMenu({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+type FilterKey = 'todos' | 'activos' | 'inactivos'
+
 export default function UsuariosPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(
-    null
-  )
+  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null)
   const [importing, setImporting] = useState(false)
+  const [filter, setFilter] = useState<FilterKey>('todos')
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -622,12 +602,15 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     void fetchUsers()
+    function handleRefresh() {
+      void fetchUsers()
+    }
+    window.addEventListener('mira:refresh', handleRefresh)
+    return () => window.removeEventListener('mira:refresh', handleRefresh)
   }, [fetchUsers])
 
   function handleUserUpdated(updated: AdminUser) {
-    setUsers((prev) =>
-      prev.map((u) => (u._id === updated._id ? updated : u))
-    )
+    setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)))
   }
 
   async function handleToggleActivo(user: AdminUser) {
@@ -640,9 +623,7 @@ export default function UsuariosPage() {
       if (!res.ok) throw new Error('Error')
       const json = (await res.json()) as { data: AdminUser }
       handleUserUpdated(json.data)
-      toast.success(
-        json.data.activo ? 'Usuario activado' : 'Usuario desactivado'
-      )
+      toast.success(json.data.activo ? 'Usuario activado' : 'Usuario desactivado')
     } catch {
       toast.error('No se pudo actualizar el estado del usuario')
     }
@@ -676,16 +657,10 @@ export default function UsuariosPage() {
 
   if (loading) {
     return (
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-lg font-semibold text-zinc-900">Usuarios</h1>
-        </div>
+      <div className="admin-view">
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-zinc-100 rounded-xl animate-pulse h-20"
-            />
+            <div key={i} className="bg-zinc-100 rounded-card animate-pulse h-20" />
           ))}
         </div>
       </div>
@@ -694,127 +669,159 @@ export default function UsuariosPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-sm text-zinc-500">{error}</p>
-        <button
-          onClick={() => void fetchUsers()}
-          className="text-sm text-[#1E3A9E] hover:underline"
-        >
+      <div className="admin-view flex flex-col items-center justify-center py-24 gap-4">
+        <p className="text-sm text-ink-muted">{error}</p>
+        <button onClick={() => void fetchUsers()} className="text-sm text-primary hover:underline">
           Reintentar
         </button>
       </div>
     )
   }
 
-  return (
-    <>
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-lg font-semibold text-zinc-900">Usuarios</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleImportFromSheets}
-              disabled={importing}
-              className="flex items-center gap-2 px-4 py-2 text-sm border border-[#14286E] text-[#14286E] hover:bg-[#EEF2FD] rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {importing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Importando...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Importar de Sheets
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-[#14286E] hover:bg-[#1E3A9E] text-white rounded-lg font-medium transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms]"
-            >
-              <UserPlus className="w-4 h-4" />
-              Crear coordinador
-            </button>
-          </div>
-        </div>
+  const activeCount = users.filter((u) => u.activo).length
+  const inactiveCount = users.length - activeCount
+  const filteredUsers = users.filter((u) => {
+    if (filter === 'activos') return u.activo
+    if (filter === 'inactivos') return !u.activo
+    return true
+  })
 
-        <div className="space-y-3">
-          {users.map((user) => (
-            <div
-              key={user._id}
+  const segments: { key: FilterKey; label: string; count: number }[] = [
+    { key: 'todos', label: 'Todos', count: users.length },
+    { key: 'activos', label: 'Activos', count: activeCount },
+    { key: 'inactivos', label: 'Inactivos', count: inactiveCount },
+  ]
+
+  return (
+    <div className="admin-view">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        {/* Segmented filter */}
+        <div className="flex items-center gap-0.5 bg-canvas rounded-field p-0.5 border border-border">
+          {segments.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setFilter(s.key)}
               className={
-                'bg-white rounded-xl border border-zinc-200 p-4 flex items-center gap-4 ' +
-                (!user.activo ? 'opacity-60' : '')
+                'flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] transition-colors duration-150 ' +
+                (filter === s.key
+                  ? 'bg-white text-ink shadow-card'
+                  : 'text-ink-muted hover:text-ink')
               }
             >
-              {/* Avatar */}
-              <div className="w-10 h-10 bg-[#1E3A9E]/10 text-[#1E3A9E] rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                {getInitials(user.nombre, user.email)}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p
-                    className={
-                      'font-medium text-zinc-900 ' +
-                      (!user.activo ? 'line-through' : '')
-                    }
-                  >
-                    {user.nombre}
-                  </p>
-                  {roleBadge(user.role)}
-                  {!user.activo && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-400">
-                      Inactivo
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-zinc-500 truncate">{user.email}</p>
-
-                {/* Municipios */}
-                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                  {(user.municipios || []).map((m) => (
-                    <span
-                      key={m}
-                      className="bg-zinc-100 text-zinc-600 text-xs px-2 py-0.5 rounded-full"
-                    >
-                      {m}
-                    </span>
-                  ))}
-                  {user.role === 'coordinador' && (
-                    <MunicipioPopover
-                      userId={user._id}
-                      currentMunicipios={user.municipios || []}
-                      onUpdated={handleUserUpdated}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Active badge */}
-              {user.activo && (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 flex-shrink-0">
-                  Activo
-                </span>
-              )}
-
-              {/* Menu */}
-              <UserRowMenu
-                user={user}
-                onResetPassword={() => setResetPasswordUser(user)}
-                onToggleActivo={() => void handleToggleActivo(user)}
-              />
-            </div>
+              {s.label}
+              <span className="tabular-nums text-ink-faint">{s.count}</span>
+            </button>
           ))}
-
-          {users.length === 0 && (
-            <div className="text-center py-16 text-sm text-zinc-400">
-              No hay usuarios registrados
-            </div>
-          )}
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleImportFromSheets()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-primary text-primary hover:bg-primary-tint rounded-field font-medium transition duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {importing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" strokeWidth={1.8} />
+                Importar de Sheets
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary-3d flex items-center gap-2 px-4 py-2 text-sm text-white rounded-field font-medium"
+          >
+            <UserPlus className="w-4 h-4" strokeWidth={1.8} />
+            Crear coordinador
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
+        {filteredUsers.map((user, i) => (
+          <div
+            key={user._id}
+            className={
+              'user-row-3d flex items-center gap-4 p-4 ' +
+              (i > 0 ? 'border-t border-[#F1F2F5]' : '')
+            }
+          >
+            {/* Avatar */}
+            <div
+              className={
+                'w-[38px] h-[38px] rounded-[11px] flex items-center justify-center text-sm font-bold flex-shrink-0 ' +
+                (user.activo ? 'bg-primary text-white' : 'bg-[#EFF1F6] text-[#9AA0AD]')
+              }
+            >
+              {getInitials(user.nombre, user.email)}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p
+                  className="font-medium"
+                  style={{ color: user.activo ? '#10131A' : '#5A6070' }}
+                >
+                  {user.nombre}
+                </p>
+                {roleBadge(user.role)}
+                {!user.activo && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF1F6] text-[#9AA0AD]">
+                    Inactivo
+                  </span>
+                )}
+              </div>
+              <p className="text-sm truncate" style={{ color: user.activo ? '#6B7280' : '#9AA0AD' }}>
+                {user.email}
+              </p>
+
+              {/* Municipios */}
+              <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                {(user.municipios || []).map((m) => (
+                  <span
+                    key={m}
+                    className="bg-canvas text-ink-muted text-xs px-2 py-0.5 rounded-full"
+                  >
+                    {m}
+                  </span>
+                ))}
+                {user.role === 'coordinador' && (
+                  <MunicipioPopover
+                    userId={user._id}
+                    currentMunicipios={user.municipios || []}
+                    onUpdated={handleUserUpdated}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Status */}
+            {user.activo && (
+              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-success-tint text-success flex-shrink-0">
+                Activo
+              </span>
+            )}
+
+            {/* Menu */}
+            <UserRowMenu
+              user={user}
+              onResetPassword={() => setResetPasswordUser(user)}
+              onToggleActivo={() => void handleToggleActivo(user)}
+            />
+          </div>
+        ))}
+
+        {filteredUsers.length === 0 && (
+          <div className="text-center py-16 text-sm text-ink-faint">
+            No hay usuarios en este filtro
+          </div>
+        )}
       </div>
 
       {/* Create modal */}
@@ -839,6 +846,6 @@ export default function UsuariosPage() {
           />
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

@@ -177,10 +177,9 @@ const Home = () => {
               transition={{ delay: 0.12, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
               className="mb-3 sm:mb-4"
             >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3-4a2 2 0 100 4 2 2 0 000-4zm0 0a2 2 0 110-4m0 4V9m0 0V7a2 2 0 110-4"></path>
-                </svg>
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/mira-badge.png" alt="Mira" className="w-full h-full object-contain p-1.5" />
               </div>
             </motion.div>
             <motion.h1

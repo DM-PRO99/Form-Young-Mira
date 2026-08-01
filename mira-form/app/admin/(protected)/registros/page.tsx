@@ -2,13 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Search,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-} from 'lucide-react'
+import { Search, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { municipioColor } from '@/lib/municipioColors'
 
 interface Submission {
   _id: string
@@ -48,11 +43,23 @@ function getNombre(datos: Record<string, unknown>): string {
   return typeof v === 'string' && v ? v : '—'
 }
 
+function MunicipioChip({ municipio }: { municipio: string }) {
+  const { bg, text } = municipioColor(municipio)
+  return (
+    <span
+      className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium"
+      style={{ backgroundColor: bg, color: text }}
+    >
+      {municipio}
+    </span>
+  )
+}
+
 function SkeletonRow() {
   return (
     <tr>
       {Array.from({ length: 5 }).map((_, i) => (
-        <td key={i} className="px-4 py-3">
+        <td key={i} className="px-[22px] py-[14px]">
           <div className="h-4 bg-zinc-100 rounded animate-pulse" />
         </td>
       ))}
@@ -139,6 +146,14 @@ export default function RegistrosPage() {
     void fetchData(page)
   }, [fetchData, page])
 
+  useEffect(() => {
+    function handleRefresh() {
+      void fetchData(page)
+    }
+    window.addEventListener('mira:refresh', handleRefresh)
+    return () => window.removeEventListener('mira:refresh', handleRefresh)
+  }, [fetchData, page])
+
   function handleSearchChange(value: string) {
     setSearchInput(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -167,105 +182,120 @@ export default function RegistrosPage() {
     document.body.removeChild(a)
   }
 
-  const totalPages = Math.ceil(total / limit)
-  const start = (page - 1) * limit + 1
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  const start = total === 0 ? 0 : (page - 1) * limit + 1
   const end = Math.min(page * limit, total)
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-zinc-900">Registros</h1>
-      </div>
-
-      {/* Filter row */}
-      <div className="flex flex-wrap gap-3 mb-6">
+    <div className="admin-view">
+      {/* Toolbar */}
+      <div className="flex flex-wrap gap-3 mb-5">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+        <div className="relative flex-1 min-w-[220px]">
+          <Search
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint pointer-events-none"
+            strokeWidth={1.8}
+          />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar por cédula o nombre..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
+            className="w-full pl-10 pr-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
           />
         </div>
 
-        {/* Municipio select */}
-        <select
-          value={municipio}
-          onChange={(e) => setMunicipio(e.target.value)}
-          className="px-3 py-2 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150 bg-white"
-        >
-          <option value="">Todos los municipios</option>
-          {userMunicipios.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+        {/* Municipio select — chevron SVG inline (no data-uri) */}
+        <div className="relative">
+          <select
+            value={municipio}
+            onChange={(e) => setMunicipio(e.target.value)}
+            className="appearance-none bg-white pl-3.5 pr-9 py-2.5 text-[13.5px] text-ink border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+          >
+            <option value="">Todos los municipios</option>
+            {userMunicipios.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-faint pointer-events-none"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <path
+              d="M6 8l4 4 4-4"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
 
-        {/* Date from */}
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          aria-label="Desde"
-          className="px-3 py-2 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
-        />
-
-        {/* Date to */}
-        <input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          aria-label="Hasta"
-          className="px-3 py-2 text-sm border border-zinc-300 rounded-lg outline-none focus:border-[#1E3A9E] focus:ring-[3px] focus:ring-[#1E3A9E]/15 transition-[border-color,box-shadow] duration-150"
-        />
+        {/* Date range — un solo contenedor con divisor */}
+        <div className="flex items-center bg-white border border-border-input rounded-field focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="Desde"
+            className="px-3.5 py-2.5 text-[13.5px] text-ink outline-none bg-transparent"
+          />
+          <div className="w-px h-5 bg-border-input" />
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            aria-label="Hasta"
+            className="px-3.5 py-2.5 text-[13.5px] text-ink outline-none bg-transparent"
+          />
+        </div>
 
         {/* Export */}
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-3 py-2 text-sm border border-zinc-300 bg-white rounded-lg hover:bg-zinc-50 transition-[background-color] duration-150 active:scale-[0.97] transition-transform duration-[140ms] font-medium text-zinc-700"
+          className="btn-primary-3d flex items-center gap-2 px-4 py-2.5 text-[13.5px] text-white rounded-field font-medium"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4" strokeWidth={1.8} />
           Exportar CSV
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[13.5px]">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-200">
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              <tr className="bg-[#FAFBFC] border-b border-border">
+                <th className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   Cédula
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <th className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   Nombre
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <th className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   Municipio
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <th className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   Actualizado
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <th className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-[#F1F2F5]">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
               ) : error ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
-                    <p className="text-sm text-zinc-500 mb-3">{error}</p>
+                  <td colSpan={5} className="px-[22px] py-12 text-center">
+                    <p className="text-sm text-ink-muted mb-3">{error}</p>
                     <button
                       onClick={() => void fetchData(page)}
-                      className="text-sm text-[#1E3A9E] hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       Reintentar
                     </button>
@@ -273,13 +303,11 @@ export default function RegistrosPage() {
                 </tr>
               ) : submissions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
-                    <p className="text-sm text-zinc-500 mb-3">
-                      No hay registros
-                    </p>
+                  <td colSpan={5} className="px-[22px] py-12 text-center">
+                    <p className="text-sm text-ink-muted mb-3">No hay registros</p>
                     <button
                       onClick={clearFilters}
-                      className="text-sm text-[#1E3A9E] hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       Limpiar filtros
                     </button>
@@ -289,35 +317,28 @@ export default function RegistrosPage() {
                 submissions.map((row) => (
                   <tr
                     key={row._id}
-                    onClick={() =>
-                      router.push(`/admin/registros/${row._id}`)
-                    }
-                    className="cursor-pointer hover:bg-zinc-50 transition-colors duration-100"
+                    onClick={() => router.push(`/admin/registros/${row._id}`)}
+                    className="table-row-3d cursor-pointer"
                   >
-                    <td className="px-4 py-3 font-mono tabular-nums text-zinc-800">
+                    <td className="px-[22px] py-[14px] font-mono tabular-nums text-[12.5px] text-ink">
                       {row.cedula}
                     </td>
-                    <td className="px-4 py-3 text-zinc-800">
-                      {getNombre(row.datos)}
+                    <td className="px-[22px] py-[14px] text-ink">{getNombre(row.datos)}</td>
+                    <td className="px-[22px] py-[14px]">
+                      <MunicipioChip municipio={row.municipio} />
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                        {row.municipio}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-500">
+                    <td className="px-[22px] py-[14px] tabular-nums text-ink-muted">
                       {formatDate(row.updatedAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[22px] py-[14px]">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           router.push(`/admin/registros/${row._id}`)
                         }}
-                        className="p-1.5 rounded-md text-zinc-400 hover:text-[#1E3A9E] hover:bg-[#EEF2FD] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
-                        aria-label="Ver registro"
+                        className="text-[13px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 rounded"
                       >
-                        <Eye className="w-4 h-4" />
+                        Ver ›
                       </button>
                     </td>
                   </tr>
@@ -329,29 +350,29 @@ export default function RegistrosPage() {
 
         {/* Pagination */}
         {!loading && !error && total > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200">
-            <p className="text-sm tabular-nums text-zinc-500">
-              {start}–{end} de {total.toLocaleString('es-CO')} registros
+          <div className="flex items-center justify-between px-[22px] py-3.5 border-t border-border">
+            <p className="text-[13px] tabular-nums text-ink-muted">
+              Mostrando {start}–{end} de {total.toLocaleString('es-CO')} registros
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
-                aria-label="Página anterior"
+                className="flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium text-ink border border-border-input rounded-field hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4" strokeWidth={1.8} />
+                Anterior
               </button>
-              <span className="text-sm tabular-nums text-zinc-600 px-2">
+              <span className="text-[13px] tabular-nums text-ink-muted px-2">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#1E3A9E]/20"
-                aria-label="Página siguiente"
+                className="flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium text-ink border border-border-input rounded-field hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
               >
-                <ChevronRight className="w-4 h-4" />
+                Siguiente
+                <ChevronRight className="w-4 h-4" strokeWidth={1.8} />
               </button>
             </div>
           </div>

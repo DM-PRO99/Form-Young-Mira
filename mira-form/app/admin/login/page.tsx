@@ -3,7 +3,6 @@
 import { useActionState, useTransition, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  ShieldCheck,
   Lock,
   Eye,
   EyeOff,
@@ -38,9 +37,10 @@ export default function LoginPage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4"
+            className="w-20 h-20 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden"
           >
-            <ShieldCheck className="w-8 h-8 text-white" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mira-badge.png" alt="Mira" className="w-full h-full object-contain p-1" />
           </motion.div>
           <motion.h1
             initial={{ y: 10, opacity: 0 }}
