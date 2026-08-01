@@ -51,12 +51,14 @@ const CHART_HEIGHT = 128
 function BarChart({ dailyCounts }: { dailyCounts: DailyCount[] }) {
   if (dailyCounts.length === 0) return null
   const maxCount = Math.max(...dailyCounts.map((d) => d.count), 1)
+  const showEveryLabel = dailyCounts.length <= 14
+  const minWidth = Math.max(420, dailyCounts.length * 30)
 
   return (
     <div className="overflow-x-auto">
       <div
-        className="flex items-end gap-2 min-w-[420px] pb-6"
-        style={{ height: `${CHART_HEIGHT + 28}px` }}
+        className="flex items-end gap-1.5"
+        style={{ minWidth: `${minWidth}px`, height: `${CHART_HEIGHT + 28}px` }}
       >
         {dailyCounts.map((d, i) => {
           const isPeak = d.count === maxCount && d.count > 0
@@ -67,6 +69,7 @@ function BarChart({ dailyCounts }: { dailyCounts: DailyCount[] }) {
             month: '2-digit',
             day: '2-digit',
           })
+          const showLabel = showEveryLabel || i % 2 === 0
           return (
             <div key={d.date} className="flex flex-col items-center gap-1 flex-1 min-w-0">
               <span className="text-[10.5px] tabular-nums text-ink-muted h-3.5">
@@ -88,7 +91,7 @@ function BarChart({ dailyCounts }: { dailyCounts: DailyCount[] }) {
                 />
               </div>
               <span className="text-[10.5px] tabular-nums text-ink-faint whitespace-nowrap">
-                {label}
+                {showLabel ? label : ''}
               </span>
             </div>
           )
@@ -98,16 +101,30 @@ function BarChart({ dailyCounts }: { dailyCounts: DailyCount[] }) {
   )
 }
 
-function RangeToggle() {
+function RangeToggle({
+  value,
+  onChange,
+}: {
+  value: 14 | 30
+  onChange: (v: 14 | 30) => void
+}) {
   return (
     <div className="flex items-center gap-0.5 bg-canvas rounded-field p-0.5 border border-border">
-      <button className="px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] bg-white text-ink shadow-card">
+      <button
+        onClick={() => onChange(14)}
+        className={
+          'px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] transition-colors duration-150 ' +
+          (value === 14 ? 'bg-white text-ink shadow-card' : 'text-ink-faint hover:text-ink')
+        }
+      >
         14d
       </button>
       <button
-        disabled
-        title="Disponible próximamente"
-        className="px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] text-ink-faint cursor-not-allowed"
+        onClick={() => onChange(30)}
+        className={
+          'px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] transition-colors duration-150 ' +
+          (value === 30 ? 'bg-white text-ink shadow-card' : 'text-ink-faint hover:text-ink')
+        }
       >
         30d
       </button>
@@ -158,12 +175,13 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rangeDays, setRangeDays] = useState<14 | 30>(14)
 
-  async function fetchDashboard() {
+  async function fetchDashboard(days: 14 | 30) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/dashboard')
+      const res = await fetch(`/api/admin/dashboard?days=${days}`)
       if (!res.ok) throw new Error('Error al cargar datos')
       const json = (await res.json()) as DashboardData
       setData(json)
@@ -175,13 +193,13 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    void fetchDashboard()
+    void fetchDashboard(rangeDays)
     function handleRefresh() {
-      void fetchDashboard()
+      void fetchDashboard(rangeDays)
     }
     window.addEventListener('mira:refresh', handleRefresh)
     return () => window.removeEventListener('mira:refresh', handleRefresh)
-  }, [])
+  }, [rangeDays])
 
   if (loading) {
     return (
@@ -202,7 +220,7 @@ export default function DashboardPage() {
         <BarChart3 className="w-10 h-10 text-zinc-300" strokeWidth={1.8} />
         <p className="text-sm text-ink-muted">{error}</p>
         <button
-          onClick={() => void fetchDashboard()}
+          onClick={() => void fetchDashboard(rangeDays)}
           className="text-sm text-primary hover:underline"
         >
           Reintentar
@@ -271,7 +289,7 @@ export default function DashboardPage() {
               />
               <h2 className="text-[14.5px] font-semibold text-ink">Registros por día</h2>
             </div>
-            <RangeToggle />
+            <RangeToggle value={rangeDays} onChange={setRangeDays} />
           </div>
           <BarChart dailyCounts={data.dailyCounts} />
         </div>

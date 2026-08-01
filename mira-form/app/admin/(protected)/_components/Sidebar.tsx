@@ -71,7 +71,7 @@ export default function Sidebar({ user }: SidebarProps) {
   }, [])
 
   const items: NavItem[] = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { href: '/admin/dashboard', label: 'Gestión de Juventudes', icon: LayoutDashboard, exact: true },
     {
       href: '/admin/registros',
       label: 'Registros',
