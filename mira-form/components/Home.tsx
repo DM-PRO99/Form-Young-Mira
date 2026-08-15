@@ -223,7 +223,7 @@ const Home = () => {
           <div className="leading-tight">
             <p className="text-white font-extrabold tracking-[0.12em] text-sm">SOY JOVEN MIRAÍSTA</p>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Movimiento MIRA
+              Partido Político Mira
             </p>
           </div>
         </motion.div>
