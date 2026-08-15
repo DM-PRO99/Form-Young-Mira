@@ -265,3 +265,94 @@ body {
     transform: none;
   }
 }
+
+/* ─── Wizard de preguntas ("Soy Joven Miraísta"): motion 3D ────────────── */
+
+.wizard-progress-fill {
+  transition: width 400ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes wizardCardEnter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wizard-card-enter {
+  animation: wizardCardEnter 450ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.wizard-option {
+  transition: transform 190ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 190ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 190ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 190ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wizard-option:hover {
+  transform: translateY(-1px);
+  border-color: #1E56E8;
+  box-shadow: 0 6px 18px rgba(10, 36, 114, 0.09);
+}
+
+.wizard-option:active {
+  transform: scale(0.995);
+}
+
+.wizard-btn-primary {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wizard-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(30, 86, 232, 0.34);
+}
+
+.wizard-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.wizard-btn-secondary {
+  transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wizard-btn-secondary:hover:not(:disabled) {
+  background-color: #F4F6FC;
+  border-color: #C3CEEB;
+}
+
+.wizard-input {
+  transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wizard-input:focus {
+  border-color: #1E56E8;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(30, 86, 232, 0.12);
+  outline: none;
+}
+
+.wizard-dot {
+  transition: width 300ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 300ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-progress-fill,
+  .wizard-card-enter,
+  .wizard-option,
+  .wizard-btn-primary,
+  .wizard-btn-secondary,
+  .wizard-input,
+  .wizard-dot {
+    transition: none;
+    animation: none;
+  }
+
+  .wizard-option:hover,
+  .wizard-option:active,
+  .wizard-btn-primary:hover:not(:disabled),
+  .wizard-btn-primary:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -34,7 +34,7 @@ export default function CoordinadorLogin() {
               JUVENTUDES MIRA
             </p>
             <p className="text-sm" style={{ color: '#7A85A3' }}>
-              Panel interno
+              Panel interno de coordinadores
             </p>
           </div>
         </div>

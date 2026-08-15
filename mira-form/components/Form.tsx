@@ -4,8 +4,10 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
-import QuestionField from './QuestionField'
+import { ArrowLeft, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react'
 import { questions, neighborhoodsByMunicipality } from '@/data/questions'
+import { formScreens, getTitleSize, type FormScreen } from '@/data/formScreens'
+import { OpcionesCard, CampoField } from './QuestionCard'
 
 interface FormData {
   [key: string]: string | string[] | { [key: string]: string };
@@ -52,8 +54,6 @@ const AUTORIZACION_MAYOR_EDAD = 'Soy mayor de edad.'
 
 const schemaObj: { [key: string]: z.ZodType<any> } = {}
 questions.forEach((q) => {
-  // if (q.id === 1) return;
-
   if (q.type === 'group') {
     const groupSchema: { [key: string]: z.ZodType<any> } = {}
     q.fields?.forEach((f: any) => {
@@ -128,25 +128,19 @@ questions.forEach((q) => {
     }
   } else if (q.type === 'radio' || q.type === 'text' || q.type === 'date' || q.type === 'select') {
     if (typeof q.required === 'function') {
-        // Si required es una función, usamos superRefine para poder usar ctx y añadir issues personalizados
-        schemaObj[`q_${q.id}`] = z.string().superRefine((val, ctx) => {
-          // Obtenemos los valores actuales del formulario
-          const formValues = (ctx as any).parent;
-          // Verificamos si el campo es requerido según la lógica de la función
-          const isRequired = q.required ? (q.required as (values: any) => boolean)(formValues) : false;
-
-          // Si no es requerido o tiene un valor válido, la validación pasa (no añadimos issues)
-          if (!isRequired || (val && (val as string).trim() !== '')) {
-            return;
-          }
-
-          // Si acá llega, entonces es requerido pero está vacío: añadimos un issue personalizado
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `${q.question} es requerido`
-          });
+      // Si required es una función, usamos superRefine para poder usar ctx y añadir issues personalizados
+      schemaObj[`q_${q.id}`] = z.string().superRefine((val, ctx) => {
+        const formValues = (ctx as any).parent;
+        const isRequired = q.required ? (q.required as (values: any) => boolean)(formValues) : false;
+        if (!isRequired || (val && (val as string).trim() !== '')) {
+          return;
+        }
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${q.question} es requerido`
         });
-      } else if (q.required) {
+      });
+    } else if (q.required) {
       schemaObj[`q_${q.id}`] = z.string().min(1, `${q.question} es requerido`)
     } else {
       schemaObj[`q_${q.id}`] = z.string().optional()
@@ -168,6 +162,7 @@ type FormValues = z.infer<typeof FormSchema> & FormData;
 
 interface FormProps {
   datosPrellenados?: Record<string, string> | null;
+  onVolverAtras?: () => void;
 }
 
 // Función para mapear los headers de Google Sheets a los campos del formulario
@@ -210,25 +205,19 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
     const campo = mapeo[header];
     if (campo) {
       const valor = datos[header];
-      console.log(valor)
-      
-      // Si el campo es un grupo (tipoDocumento o numeroDocumento)
+
       if (campo === "tipoDocumento" || campo === "numeroDocumento") {
         if (!datosPrellenados["group_6"]) {
           datosPrellenados["group_6"] = {};
         }
         (datosPrellenados["group_6"] as any)[campo] = valor || "";
-      }
-      // Si el campo es un checkbox (arrays separados por comas)
-      else if (campo === "q_15" || campo === "q_16" || campo === "q_17" || campo === "q_19" || campo === "q_20" || campo === "q_25") {
+      } else if (campo === "q_15" || campo === "q_16" || campo === "q_17" || campo === "q_19" || campo === "q_20" || campo === "q_25") {
         if (valor && valor.trim()) {
           datosPrellenados[campo] = valor.split(",").map((v) => v.trim()).filter((v) => v);
         } else {
           datosPrellenados[campo] = [];
         }
-      }
-      // Campos normales
-      else {
+      } else {
         datosPrellenados[campo] = valor || "";
       }
     }
@@ -237,10 +226,34 @@ const mapearDatosAPrellenar = (datos: Record<string, string>): Partial<FormValue
   return datosPrellenados;
 };
 
-export default function Form({ datosPrellenados = null }: FormProps) {
+// ─── Resolución de metadata de cada pregunta (opciones/placeholder) ────────
+
+function findQuestion(id: string | number) {
+  return questions.find((q) => String(q.id) === String(id))
+}
+
+function resolveCampoMeta(questionId: string | number): { options?: string[]; placeholder?: string } {
+  if (questionId === 'tipoDocumento' || questionId === 'numeroDocumento') {
+    const group = questions.find((q) => q.id === 6)
+    const field = group?.fields?.find((f) => f.name === questionId)
+    return { options: field?.options, placeholder: field?.placeholder }
+  }
+  const q = findQuestion(questionId)
+  return { placeholder: q?.placeholder }
+}
+
+function screenFieldNames(screen: FormScreen): string[] {
+  if (screen.id === 'group_6') return ['group_6']
+  if (screen.content.kind === 'opciones') return [`q_${screen.content.questionId}`]
+  return screen.content.items.map((item) =>
+    item.questionId === 'tipoDocumento' || item.questionId === 'numeroDocumento' ? 'group_6' : `q_${item.questionId}`
+  ).filter((v, i, arr) => arr.indexOf(v) === i)
+}
+
+export default function Form({ datosPrellenados = null, onVolverAtras }: FormProps) {
   const { control, handleSubmit, formState: { errors }, watch, setValue, trigger, getValues } = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
-    mode: 'onChange', // Validar en tiempo real mientras el usuario escribe
+    mode: 'onChange',
     defaultValues: {
       q_12: '',
       q_13: '',
@@ -254,6 +267,7 @@ export default function Form({ datosPrellenados = null }: FormProps) {
   const [sent, setSent] = useState(false)
   const [showHabeasDataModal, setShowHabeasDataModal] = useState(false)
   const [pendingSubmitData, setPendingSubmitData] = useState<any>(null)
+  const [screenIndex, setScreenIndex] = useState(0)
   const [notification, setNotification] = useState<{
     show: boolean;
     type: 'success' | 'error';
@@ -262,40 +276,25 @@ export default function Form({ datosPrellenados = null }: FormProps) {
 
   const selectedMunicipality = watch('q_8')
   const selectedNeighborhood = watch('q_8b')
-
-  // Calcular progreso del formulario
   const formValues = watch()
-  const progress = useMemo(() => {
-    const totalFields = Object.keys(schemaObj).length
-    const filledFields = Object.keys(formValues).filter(key => {
-      const value = formValues[key]
-      if (Array.isArray(value)) return value.length > 0
-      if (typeof value === 'object') return Object.keys(value).length > 0
-      return value && value !== ''
-    }).length
-    const rawProgress = Math.round((filledFields / totalFields) * 100)
-    return Math.min(100, rawProgress)
-  }, [formValues])
+
+  const visibleIndices = useMemo(
+    () => formScreens.map((_, i) => i).filter((i) => !formScreens[i].skip?.(formValues)),
+    [formValues]
+  )
+  const totalVisible = visibleIndices.length
+  const currentPosition = Math.max(1, visibleIndices.indexOf(screenIndex) + 1)
+  const screen = formScreens[screenIndex]
+  const isLastVisible = visibleIndices[visibleIndices.length - 1] === screenIndex
+  const progressPct = Math.round((currentPosition / totalVisible) * 100)
 
   // Prellenar formulario cuando hay datos encontrados
   useEffect(() => {
     if (datosPrellenados) {
       const datosMapeados = mapearDatosAPrellenar(datosPrellenados);
-      
-      // Prellenar campos individuales
       Object.keys(datosMapeados).forEach((key) => {
         const valor = datosMapeados[key];
-        
-        if (key === "group_6" && typeof valor === "object") {
-          // Manejar grupo de documento - pasar el objeto completo
-          setValue("group_6" as any, valor as any);
-        } else if (Array.isArray(valor)) {
-          // Manejar arrays (checkboxes)
-          setValue(key as any, valor);
-        } else {
-          // Campos normales
-          setValue(key as any, valor);
-        }
+        setValue(key as any, valor as any);
       });
     }
   }, [datosPrellenados, setValue]);
@@ -308,6 +307,41 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       }
     }
   }, [selectedNeighborhood, selectedMunicipality, setValue])
+
+  function goToIndex(target: number) {
+    setScreenIndex(Math.max(0, Math.min(formScreens.length - 1, target)))
+  }
+
+  async function handleNext() {
+    const fields = screenFieldNames(screen)
+    const valid = await trigger(fields as any)
+    if (!valid) return
+    let next = screenIndex + 1
+    while (next < formScreens.length && formScreens[next].skip?.(getValues())) {
+      next++
+    }
+    if (next < formScreens.length) {
+      goToIndex(next)
+    } else {
+      void handleSubmit(handleFormSubmit, onValidationError)()
+    }
+  }
+
+  function handlePrev() {
+    let prev = screenIndex - 1
+    while (prev > 0 && formScreens[prev].skip?.(getValues())) {
+      prev--
+    }
+    goToIndex(Math.max(0, prev))
+  }
+
+  function onValidationError() {
+    setNotification({
+      show: true,
+      type: 'error',
+      message: 'Por favor completa todos los campos requeridos antes de enviar.'
+    })
+  }
 
   const handleFormSubmit = (data: any) => {
     const birthDate = data['q_4'] as string | undefined
@@ -360,14 +394,12 @@ export default function Form({ datosPrellenados = null }: FormProps) {
       }
     }
 
-    // Guardar los datos y mostrar el modal de confirmación
     setPendingSubmitData(data)
     setShowHabeasDataModal(true)
   }
 
   const confirmSubmit = async () => {
     if (!pendingSubmitData) return
-    
     setShowHabeasDataModal(false)
     await onSubmit(pendingSubmitData)
   }
@@ -380,40 +412,14 @@ export default function Form({ datosPrellenados = null }: FormProps) {
   const onSubmit = async (data: any) => {
     setLoading(true)
     setNotification({ show: false, type: 'success', message: '' })
-    
-    // Inicializar con TODOS los campos vacíos
+
     const payload: any = {
-      q_autorizacion_menor: '',
-      q_1: 'Sí',
-      q_2: '',
-      q_3: '',
-      q_4: '',
-      q_5: '',
-      tipoDocumento: '',
-      numeroDocumento: '',
-      q_7: '',
-      q_8: '',
-      q_8b: '',
-      q_8c: '',
-      q_9: '',
-      q_10: '',
-      q_11: '',
-      q_12: '',
-      q_13: '',
-      q_14: '',
-      q_15: '',
-      q_16: '',
-      q_17: '',
-      q_18: '',
-      q_19: '',
-      q_20: '',
-      q_21: '',
-      q_22: '',
-      q_23: '',
-      q_24: '',
-      q_25: '',
+      q_autorizacion_menor: '', q_1: 'Sí', q_2: '', q_3: '', q_4: '', q_5: '',
+      tipoDocumento: '', numeroDocumento: '', q_7: '', q_8: '', q_8b: '', q_8c: '',
+      q_9: '', q_10: '', q_11: '', q_12: '', q_13: '', q_14: '', q_15: '', q_16: '',
+      q_17: '', q_18: '', q_19: '', q_20: '', q_21: '', q_22: '', q_23: '', q_24: '', q_25: '',
     }
-    
+
     Object.keys(data).forEach((k) => {
       if (k.startsWith('group_')) {
         const group = data[k] || {}
@@ -422,7 +428,6 @@ export default function Form({ datosPrellenados = null }: FormProps) {
         })
       } else {
         const value = data[k]
-        // Manejar arrays vacíos y valores undefined/null
         if (Array.isArray(value)) {
           payload[k] = value.length > 0 ? value.join(', ') : ''
         } else {
@@ -430,22 +435,21 @@ export default function Form({ datosPrellenados = null }: FormProps) {
         }
       }
     })
-    
+
     try {
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      
+
       const responseData = await res.json()
-      
+
       if (!res.ok) {
         throw new Error(responseData.message || 'Error al enviar el formulario')
       }
-      
+
       if (responseData.success) {
-        // Limpiar localStorage después de enviar exitosamente
         localStorage.removeItem('mira_form_cedula')
         localStorage.removeItem('mira_form_datos')
         setNotification({
@@ -453,11 +457,10 @@ export default function Form({ datosPrellenados = null }: FormProps) {
           type: 'success',
           message: '¡Formulario enviado exitosamente! Tus respuestas han sido guardadas.'
         })
-       
         setTimeout(() => {
           setSent(true)
           setLoading(false)
-        }, 2000)
+        }, 1500)
       } else {
         throw new Error(responseData.message || 'Error al guardar los datos')
       }
@@ -472,301 +475,464 @@ export default function Form({ datosPrellenados = null }: FormProps) {
     }
   }
 
+  // ─── Pantalla de éxito ────────────────────────────────────────────────
   if (sent) {
     return (
-      <div className="max-w-2xl mx-auto p-10 bg-gradient-to-br from-white to-blue-50 rounded-3xl text-center shadow-2xl border border-blue-100">
-        <div className="mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold text-miraBlue mb-3">
-            ¡Registro Exitoso!
-          </h2>
-          <p className="text-gray-600 text-sm mb-6">
-            Tus respuestas han sido guardadas correctamente
-          </p>
-        </div>
-        
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 border border-blue-100">
-          <h3 className="text-2xl font-bold text-miraBlue mb-3">
-            💙 ¡Muchas Gracias por Participar!
-          </h3>
-          <p className="text-gray-700 leading-relaxed">
-            Quedas cordialmente invitado a nuestra próxima integración de Juventudes MIRA. 
-            Agradecemos tu compromiso y disposición con las respuestas.
-          </p>
-        </div>
-        
-        <button
-          onClick={() => window.location.reload()}
-          className="btn-primary px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-2"
+      <WizardShell>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="mx-auto text-center"
+          style={{
+            maxWidth: '560px',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '22px',
+            padding: '48px 40px',
+            boxShadow: '0 24px 60px rgba(4,16,54,0.32)',
+          }}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          Llenar Otro Formulario
-        </button>
-      </div>
+          <div
+            className="mx-auto mb-6 flex items-center justify-center"
+            style={{ width: '72px', height: '72px', borderRadius: '9999px', backgroundColor: '#EEF2FE' }}
+          >
+            <CheckCircle2 className="w-9 h-9" style={{ color: '#1E56E8' }} strokeWidth={1.8} />
+          </div>
+          <h2 className="font-extrabold mb-3" style={{ color: '#0A2472', fontSize: '28px' }}>
+            ¡Registro exitoso!
+          </h2>
+          <p className="mb-6" style={{ color: '#5C6784' }}>
+            Quedas cordialmente invitado a nuestra próxima integración de Juventudes MIRA. Agradecemos
+            tu compromiso y disposición con las respuestas.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="wizard-btn-primary text-white font-bold inline-flex items-center gap-2"
+            style={{
+              height: '52px',
+              padding: '0 28px',
+              borderRadius: '12px',
+              background: 'linear-gradient(120deg, #0A2472, #1E56E8)',
+              boxShadow: '0 10px 24px rgba(30,86,232,0.3)',
+            }}
+          >
+            Llenar otro formulario
+          </button>
+        </motion.div>
+      </WizardShell>
     )
   }
 
   return (
-    <div className="form-container p-8">
-      {/* Indicador de progreso sticky */}
-      <div className="sticky top-0 z-50 -mx-8 -mt-8 mb-8 bg-white/95 backdrop-blur-lg border-b border-blue-100 px-8 py-4 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700">Progreso del formulario</span>
-          <span className="text-sm font-bold text-miraBlue">{progress}%</span>
-        </div>
-        <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
-          <motion.div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-miraBlue via-blue-500 to-indigo-600 rounded-full shadow-lg"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-          </motion.div>
-        </div>
-        {progress > 0 && progress < 100 && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="text-xs text-gray-500 mt-2 text-center"
-          >
-            ¡Vas muy bien! Sigue completando el formulario 🚀
-          </motion.p>
-        )}
-        {progress === 100 && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="text-xs text-green-600 font-semibold mt-2 text-center"
-          >
-            ✨ ¡Formulario completo! Ya puedes enviarlo
-          </motion.p>
-        )}
-      </div>
-
-      <div className="mb-10 text-center">
-        <div className="inline-block mb-4">
-          <div className="w-16 h-1 bg-gradient-to-r from-miraBlue to-blue-500 mx-auto rounded-full"></div>
-        </div>
-        <h1 className="text-4xl font-bold text-miraBlue mb-3 tracking-tight">
-          Encuesta Juventudes MIRA
-        </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Tu opinión es muy importante para nosotros
-        </p>
-      </div>
-
-      
-      {notification.show && (
-        <div className={`mb-8 p-5 rounded-2xl border animate-fade-in backdrop-blur-sm ${
-          notification.type === 'success' 
-            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 text-green-900' 
-            : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300 text-red-900'
-        }`}>
-          <div className="flex items-start gap-4">
-            <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-              notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              <span className="text-xl">
-                {notification.type === 'success' ? '✓' : '✕'}
-              </span>
-            </div>
-            <div className="flex-1 pt-1">
-              <p className="font-bold text-lg mb-1">
-                {notification.type === 'success' ? '¡Éxito!' : 'Error'}
-              </p>
-              <p className="text-sm leading-relaxed">{notification.message}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setNotification({ ...notification, show: false })}
-              className="flex-shrink-0 text-2xl hover:opacity-70 transition-opacity p-1 hover:bg-white/50 rounded-lg"
-            >
-              ×
-            </button>
+    <WizardShell onVolverAtras={onVolverAtras}>
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(10,36,114,0.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="text-center" style={{ backgroundColor: '#FFFFFF', borderRadius: '22px', padding: '40px 48px', boxShadow: '0 24px 60px rgba(4,16,54,0.32)' }}>
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#1E56E8' }} />
+            <p className="font-bold" style={{ color: '#0A2472' }}>Enviando formulario...</p>
+            <p className="text-sm mt-1" style={{ color: '#7A85A3' }}>Por favor espera un momento</p>
           </div>
         </div>
       )}
-      
-      {/* Modal de confirmación Ley 1581 */}
+
+      {notification.show && notification.type === 'error' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mb-4 flex items-start gap-3"
+          style={{ maxWidth: '760px', backgroundColor: '#FFFFFF', border: '1.5px solid #F3D3DB', borderRadius: '14px', padding: '16px 18px' }}
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#D9455F' }} strokeWidth={1.8} />
+          <div className="flex-1">
+            <p className="text-sm" style={{ color: '#22304F' }}>{notification.message}</p>
+          </div>
+          <button onClick={() => setNotification({ ...notification, show: false })} className="text-lg flex-shrink-0" style={{ color: '#A9B6D8' }}>
+            ×
+          </button>
+        </motion.div>
+      )}
+
+      {/* Barra de progreso */}
+      <div className="mx-auto flex items-center gap-4 mb-[18px]" style={{ maxWidth: '760px' }}>
+        <div className="flex-1 rounded-full overflow-hidden" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.2)' }}>
+          <div
+            className="wizard-progress-fill h-full rounded-full"
+            style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #7FA6FF, #FFFFFF)' }}
+          />
+        </div>
+        <span className="flex-shrink-0 text-white" style={{ fontSize: '13px', fontWeight: 700, opacity: 0.85 }}>
+          Pregunta {currentPosition} de {totalVisible}
+        </span>
+      </div>
+
+      {/* Tarjeta de la pregunta */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={screen.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
+          className="mx-auto"
+          style={{
+            maxWidth: '760px',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '22px',
+            padding: '40px',
+            boxShadow: '0 24px 60px rgba(4,16,54,0.32)',
+            boxSizing: 'border-box',
+          }}
+        >
+          <p
+            className="uppercase mb-3"
+            style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', color: '#1E56E8' }}
+          >
+            {screen.section}
+          </p>
+          <h2
+            className="font-bold mb-2"
+            style={{
+              color: '#0A2472',
+              fontSize: `${getTitleSize(screen.title)}px`,
+              lineHeight: 1.28,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {screen.title}
+          </h2>
+          {screen.help && (
+            <p className="mb-6" style={{ fontSize: '15px', color: '#7A85A3' }}>
+              {screen.help}
+            </p>
+          )}
+          {!screen.help && <div className="mb-4" />}
+
+          <ScreenBody
+            screen={screen}
+            control={control}
+            trigger={trigger}
+            errors={errors}
+            selectedMunicipality={selectedMunicipality}
+          />
+
+          <div className="flex items-center justify-between mt-8 pt-6" style={{ borderTop: '1px solid #F0F3FB' }}>
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={visibleIndices.indexOf(screenIndex) === 0}
+              className="wizard-btn-secondary font-semibold"
+              style={{
+                height: '48px',
+                padding: '0 22px',
+                borderRadius: '12px',
+                backgroundColor: 'transparent',
+                border: '1.5px solid #E4E9F7',
+                color: visibleIndices.indexOf(screenIndex) === 0 ? '#A9B6D8' : '#0A2472',
+              }}
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleNext()}
+              className="wizard-btn-primary flex items-center gap-2 text-white font-bold"
+              style={{
+                height: '52px',
+                padding: '0 26px',
+                borderRadius: '12px',
+                background: 'linear-gradient(120deg, #0A2472, #1E56E8)',
+                boxShadow: '0 10px 24px rgba(30,86,232,0.3)',
+              }}
+            >
+              {isLastVisible ? 'Finalizar' : 'Continuar'}
+              <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Puntos de navegación */}
+      <div className="flex items-center justify-center gap-1.5 mt-6">
+        {visibleIndices.map((idx) => {
+          const isCurrent = idx === screenIndex
+          const posInVisible = visibleIndices.indexOf(idx)
+          const isAnswered = posInVisible < currentPosition - 1
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => goToIndex(idx)}
+              aria-label={`Ir a la pregunta ${posInVisible + 1}`}
+              className="wizard-dot rounded-full"
+              style={{
+                height: '6px',
+                width: isCurrent ? '28px' : '6px',
+                backgroundColor: isCurrent ? '#FFFFFF' : isAnswered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)',
+              }}
+            />
+          )
+        })}
+      </div>
+
+      <p className="text-center mt-6" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+        Tus respuestas se guardan automáticamente.
+      </p>
+
+      {/* Modal Ley 1581 */}
       <AnimatePresence>
         {showHabeasDataModal && (
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(10,36,114,0.6)', backdropFilter: 'blur(4px)' }}
             onClick={cancelSubmit}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] } }}
-              transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
+              exit={{ opacity: 0, scale: 0.98, y: 4 }}
+              transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="w-full overflow-y-auto"
+              style={{
+                maxWidth: '640px',
+                maxHeight: '90vh',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '22px',
+                boxShadow: '0 24px 60px rgba(4,16,54,0.32)',
+              }}
             >
-            <div className="p-8">
-              {/* Header */}
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-miraBlue to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                  </svg>
+              <div className="p-8">
+                <div className="text-center mb-6">
+                  <div
+                    className="mx-auto mb-4 flex items-center justify-center"
+                    style={{ width: '64px', height: '64px', borderRadius: '9999px', backgroundColor: '#EEF2FE' }}
+                  >
+                    <ShieldCheck className="w-8 h-8" style={{ color: '#1E56E8' }} strokeWidth={1.8} />
+                  </div>
+                  <h2 className="font-extrabold mb-1" style={{ color: '#0A2472', fontSize: '22px' }}>
+                    Política de tratamiento de datos personales
+                  </h2>
+                  <p className="text-sm" style={{ color: '#7A85A3' }}>Ley 1581 de 2012 · Habeas Data</p>
                 </div>
-                <h2 className="text-2xl font-bold text-miraBlue mb-2">
-                  Política de Tratamiento de Datos Personales
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Ley 1581 de 2012 - Habeas Data
-                </p>
-              </div>
 
-              {/* Contenido */}
-              <div className="bg-blue-50 rounded-2xl p-6 mb-6 border border-blue-100">
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  En cumplimiento a la <strong>Ley 1581 de 2012</strong> de Protección de Datos Personales (Habeas Data), 
-                  informamos que los datos suministrados en este formulario serán tratados conforme a las disposiciones legales.
-                </p>
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  Al enviar este formulario, <strong>autorizas de manera expresa</strong> el manejo de tu información dentro de 
-                  una base de datos privada y protegida, para los fines relacionados con la Encuesta Juventudes MIRA.
-                </p>
-                <div className="bg-white rounded-xl p-4 border-l-4 border-miraBlue">
-                  <p className="text-sm text-gray-600">
-                    <strong>Derechos que tienes:</strong> Conocer, actualizar, rectificar y suprimir tu información personal, 
-                    así como revocar la autorización otorgada para el tratamiento de tus datos.
+                <div className="mb-6" style={{ backgroundColor: '#F4F6FC', borderRadius: '14px', padding: '20px' }}>
+                  <p className="mb-3" style={{ color: '#37456B', lineHeight: 1.6 }}>
+                    En cumplimiento a la <strong>Ley 1581 de 2012</strong> de Protección de Datos Personales
+                    (Habeas Data), informamos que los datos suministrados en este formulario serán tratados
+                    conforme a las disposiciones legales.
                   </p>
+                  <p className="mb-3" style={{ color: '#37456B', lineHeight: 1.6 }}>
+                    Al enviar este formulario, <strong>autorizas de manera expresa</strong> el manejo de tu
+                    información dentro de una base de datos privada y protegida, para los fines relacionados
+                    con la Encuesta Juventudes MIRA.
+                  </p>
+                  <div style={{ backgroundColor: '#FFFFFF', borderRadius: '10px', padding: '14px', borderLeft: '4px solid #1E56E8' }}>
+                    <p className="text-sm" style={{ color: '#5C6784' }}>
+                      <strong>Derechos que tienes:</strong> conocer, actualizar, rectificar y suprimir tu
+                      información personal, así como revocar la autorización otorgada.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={cancelSubmit}
+                    className="wizard-btn-secondary flex-1 font-semibold"
+                    style={{ height: '52px', borderRadius: '12px', border: '1.5px solid #E4E9F7', color: '#0A2472' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmSubmit}
+                    className="wizard-btn-primary flex-1 text-white font-bold"
+                    style={{
+                      height: '52px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(120deg, #0A2472, #1E56E8)',
+                      boxShadow: '0 10px 24px rgba(30,86,232,0.3)',
+                    }}
+                  >
+                    Aceptar y enviar
+                  </button>
                 </div>
               </div>
-
-              {/* Botones */}
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={cancelSubmit}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmSubmit}
-                  className="flex-1 btn-primary px-6 py-3 rounded-xl font-semibold shadow-lg"
-                >
-                  Aceptar y Enviar
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-        )}
-      </AnimatePresence>
-
-      <form onSubmit={handleSubmit(handleFormSubmit, (errors) => {
-        setNotification({
-          show: true,
-          type: 'error',
-          message: 'Por favor completa todos los campos requeridos antes de enviar.'
-        })
-      })} className="space-y-6">
-        {loading && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm mx-4">
-              <div className="relative w-16 h-16 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-miraBlue border-t-transparent animate-spin"></div>
-              </div>
-              <h3 className="text-miraBlue font-bold text-xl mb-2">Enviando Formulario</h3>
-              <p className="text-gray-600 text-sm">Por favor espera un momento...</p>
-              <div className="mt-4 flex justify-center gap-1">
-                <div className="w-2 h-2 bg-miraBlue rounded-full animate-pulse" style={{animationDelay: '0s'}}></div>
-                <div className="w-2 h-2 bg-miraBlue rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                <div className="w-2 h-2 bg-miraBlue rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-              </div>
-            </div>
+            </motion.div>
           </div>
         )}
-        {questions.map((q) => {
-          if (q.type === 'group') {
-            const fieldName = `group_${String(q.id)}` as keyof FormValues
-            const fieldError = errors[fieldName]
-            return (
-              <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <QuestionField 
-                    q={q} 
-                    onChange={(k,v) => {
-                      field.onChange({ ...(field.value||{}), [k]: v })
-                      // Validar el campo después de cambiar
-                      setTimeout(() => trigger(fieldName as any), 0)
-                    }} 
-                    watchValue={field.value}
-                    error={fieldError as any}
-                    fieldName={String(fieldName)}
-                  />
-                </div>
-              )} />
-            )
-          }
+      </AnimatePresence>
+    </WizardShell>
+  )
+}
 
-          if (q.type === 'checkbox') {
-            const fieldName = `q_${String(q.id)}` as keyof FormValues
-            const fieldError = errors[fieldName]
-            return (
-              <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
-                <div className="radio-group">
-                  <QuestionField 
-                    q={q} 
-                    onChange={(k,v) => {
-                      field.onChange(v)
-                      setTimeout(() => trigger(fieldName as any), 0)
-                    }} 
-                    watchValue={field.value}
-                    error={fieldError as any}
-                    fieldName={String(fieldName)}
-                  />
-                </div>
-              )} />
-            )
-          }
+// ─── Cáscara visual (fondo, header, halo) ──────────────────────────────────
 
-          const fieldName = `q_${String(q.id)}` as keyof FormValues
-          const fieldError = errors[fieldName]
+function WizardShell({ children, onVolverAtras }: { children: React.ReactNode; onVolverAtras?: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="relative min-h-screen overflow-hidden"
+      style={{
+        background: 'linear-gradient(160deg, #0A2472, #12307F, #1E56E8)',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        boxSizing: 'border-box',
+      }}
+    >
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      />
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '-10%',
+          right: '-15%',
+          width: '1200px',
+          height: '700px',
+          background: 'radial-gradient(circle, rgba(91,63,228,0.55), transparent 70%)',
+        }}
+      />
+
+      <header className="relative flex items-center justify-between px-6 sm:px-10 py-6">
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mira-badge.png"
+            alt="Juventudes Mira"
+            className="w-[68px] h-[68px] rounded-2xl object-cover flex-shrink-0"
+          />
+          <div className="leading-tight">
+            <p
+              className="uppercase text-white"
+              style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.16em', opacity: 0.78 }}
+            >
+              Encuesta Juventudes MIRA
+            </p>
+            <p className="text-white" style={{ fontSize: '12.5px', opacity: 0.58 }}>
+              Partido Político Mira
+            </p>
+          </div>
+        </div>
+        {onVolverAtras && (
+          <button
+            onClick={onVolverAtras}
+            className="landing-toggle flex items-center gap-2 text-white"
+            style={{ opacity: 0.78 }}
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.8} />
+            Volver atrás
+          </button>
+        )}
+      </header>
+
+      <main className="relative px-6 sm:px-10 pb-16">{children}</main>
+    </motion.div>
+  )
+}
+
+// ─── Cuerpo de la pantalla (opciones o campos) ─────────────────────────────
+
+function ScreenBody({
+  screen,
+  control,
+  trigger,
+  errors,
+  selectedMunicipality,
+}: {
+  screen: FormScreen
+  control: any
+  trigger: (name: any) => void
+  errors: any
+  selectedMunicipality?: string
+}) {
+  if (screen.content.kind === 'opciones') {
+    const question = findQuestion(screen.content.questionId)
+    const fieldName = `q_${screen.content.questionId}`
+    return (
+      <Controller
+        control={control}
+        name={fieldName as any}
+        render={({ field }) => (
+          <OpcionesCard
+            options={question?.options ?? []}
+            multi={screen.content.kind === 'opciones' ? screen.content.multi : false}
+            value={field.value}
+            onChange={(v) => {
+              field.onChange(v)
+              setTimeout(() => trigger(fieldName as any), 0)
+            }}
+          />
+        )}
+      />
+    )
+  }
+
+  // campos
+  if (screen.id === 'group_6') {
+    return (
+      <Controller
+        control={control}
+        name="group_6"
+        render={({ field }) => (
+          <div className="grid gap-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {screen.content.kind === 'campos' &&
+              screen.content.items.map((item) => {
+                const meta = resolveCampoMeta(item.questionId)
+                const value = (field.value && field.value[item.questionId]) || ''
+                return (
+                  <CampoField
+                    key={String(item.questionId)}
+                    label={item.label}
+                    type={item.type}
+                    value={value}
+                    placeholder={item.placeholder ?? meta.placeholder}
+                    options={meta.options}
+                    error={errors?.group_6?.[item.questionId]?.message}
+                    onChange={(v) => {
+                      field.onChange({ ...(field.value || {}), [item.questionId]: v })
+                      setTimeout(() => trigger('group_6' as any), 0)
+                    }}
+                  />
+                )
+              })}
+          </div>
+        )}
+      />
+    )
+  }
+
+  return (
+    <div className="grid gap-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      {screen.content.kind === 'campos' &&
+        screen.content.items.map((item) => {
+          const fieldName = `q_${item.questionId}`
+          const meta = resolveCampoMeta(item.questionId)
           return (
-            <Controller key={String(q.id)} control={control} name={fieldName as any} render={({ field }) => (
-              <div className="radio-group">
-                <QuestionField 
-                  q={q} 
-                  onChange={(k,v) => {
+            <Controller
+              key={String(item.questionId)}
+              control={control}
+              name={fieldName as any}
+              render={({ field }) => (
+                <CampoField
+                  label={item.label}
+                  type={item.type}
+                  value={typeof field.value === 'string' ? field.value : ''}
+                  placeholder={item.placeholder ?? meta.placeholder}
+                  municipalityValue={item.type === 'select-search' ? selectedMunicipality : undefined}
+                  neighborhoods={item.type === 'select-search' ? neighborhoodsByMunicipality : undefined}
+                  error={errors?.[fieldName]?.message}
+                  onChange={(v) => {
                     field.onChange(v)
                     setTimeout(() => trigger(fieldName as any), 0)
-                  }} 
-                  watchValue={field.value}
-                  municipalityValue={selectedMunicipality}
-                  error={fieldError as any}
-                  fieldName={String(fieldName)}
+                  }}
                 />
-              </div>
-            )} />
+              )}
+            />
           )
         })}
-
-        <div className="mt-8">
-          <button
-            className="btn-primary w-full py-3 text-lg font-semibold rounded-xl shadow-lg"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Enviando...' : 'Enviar respuestas'}
-          </button>
-        </div>
-      </form>
     </div>
   )
 }

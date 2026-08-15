@@ -139,28 +139,7 @@ const Home = () => {
 
   // Si ya se ingresó la cédula, mostrar el formulario
   if (cedulaIngresada || noRegistrado) {
-    return (
-        <div className="w-full max-w-4xl mx-auto p-3 sm:p-4 md:p-6">
-            <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-xl">
-                <div className="mb-4 sm:mb-6">
-                  <button
-                    onClick={handleVolverAtras}
-                    className="flex items-center gap-2 text-sm sm:text-base text-gray-600 hover:text-miraBlue transition-colors mb-4"
-                  >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    <span>Volver atrás</span>
-                  </button>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-miraBlue text-center mb-2">Encuesta Juventudes MIRA</h1>
-                <p className="text-xs sm:text-sm text-slate-600 text-center mb-4 sm:mb-6 px-2">
-                    ¡Queremos conocer a nuestro equipo de trabajo! Por eso, te invitamos a llenar esta encuesta para consolidar nuestro grupo.
-                </p>
-                <Form datosPrellenados={datosEncontrados} />
-            </div>
-        </div>
-    )
+    return <Form datosPrellenados={datosEncontrados} onVolverAtras={handleVolverAtras} />
   }
 
   const cedulaDigitCount = cedulaValue.length
@@ -367,11 +346,9 @@ const Home = () => {
           className="relative flex items-center gap-4 text-sm"
           style={{ color: 'rgba(255,255,255,0.6)' }}
         >
-          <span>5 minutos</span>
+          <span>No te tomará más de 5 minutos en llenar la encuesta</span>
           <span>·</span>
-          <span>18 preguntas</span>
-          <span>·</span>
-          <span>Respuestas anónimas</span>
+          <span>24 preguntas</span>
         </motion.div>
       </div>
 
