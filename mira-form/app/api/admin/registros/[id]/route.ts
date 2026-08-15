@@ -86,15 +86,23 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (session.user.role !== 'admin') {
-    return NextResponse.json({ error: 'Solo administradores pueden eliminar registros' }, { status: 403 })
-  }
 
   const { id } = await params
+  const { role } = session.user
 
   await connectToMongoDB()
-  const submission = await Submission.findByIdAndDelete(id).lean()
+
+  const submission = await Submission.findById(id)
   if (!submission) return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 })
+
+  if (role !== 'admin') {
+    const municipios = await getUserMunicipios(session.user.id)
+    if (!municipios.includes(submission.municipio)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+  }
+
+  await submission.deleteOne()
 
   return NextResponse.json({ success: true })
 }

@@ -4,7 +4,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { motion } from 'framer-motion'
+import { CreditCard, ArrowRight, AlertCircle } from 'lucide-react'
 import Form from './Form'
+import CoordinadorLogin from './CoordinadorLogin'
 
 const cedulaSchema = z.object({
   cedula: z.string()
@@ -23,6 +25,8 @@ const Home = () => {
   const { register, handleSubmit, formState: { errors }, watch } = useForm<CedulaFormValues>({
     resolver: zodResolver(cedulaSchema)
   })
+  const cedulaValue = watch('cedula') ?? ''
+  const cedulaField = register('cedula')
 
   const [loading, setLoading] = useState(false)
   const [noRegistrado, setNoRegistrado] = useState(false)
@@ -37,7 +41,7 @@ const Home = () => {
       try {
         const savedCedula = localStorage.getItem(STORAGE_KEY)
         const savedData = localStorage.getItem(STORAGE_DATA_KEY)
-        
+
         if (savedCedula && savedData) {
           // Si hay datos guardados, cargarlos automáticamente
           const parsedData = JSON.parse(savedData)
@@ -62,7 +66,7 @@ const Home = () => {
 
     try {
       const respuesta = await buscarPorCedula(data.cedula)
-      
+
       // Si se encontraron datos, guardarlos en estado y localStorage
       if (respuesta.data) {
         setDatosEncontrados(respuesta.data)
@@ -73,7 +77,7 @@ const Home = () => {
         // Si no hay datos pero la búsqueda fue exitosa, guardar solo la cédula
         localStorage.setItem(STORAGE_KEY, data.cedula)
       }
-      
+
       setTimeout(() => {
         setCedulaIngresada(true)
         setLoading(false)
@@ -108,13 +112,13 @@ const Home = () => {
     console.log('Buscando cédula:', cedula)
     const url = `/api/cedula/${cedula}`
     const response = await fetch(url)
-    
+
     if (!response.ok) {
       const errorData = await response.json()
       console.error('Error al buscar cédula:', errorData)
       throw new Error(errorData.error || errorData.message || 'Error al buscar cédula')
     }
-    
+
     const data = await response.json()
     console.log('Datos de la cédula:', data)
 
@@ -159,173 +163,224 @@ const Home = () => {
     )
   }
 
+  const cedulaDigitCount = cedulaValue.length
+  const isValidCedula = /^\d{7,12}$/.test(cedulaValue)
+  const showLiveError = cedulaDigitCount > 0 && cedulaDigitCount < 7
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, rotateY: 15, rotateX: 5 }}
-        animate={{ opacity: 1, scale: 1, rotateY: 0, rotateX: 0 }}
-        transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-        whileHover={{ scale: 1.02, rotateY: 2, rotateX: -1 }}
-        className="w-full max-w-md perspective-1000"
+    <div className="min-h-screen flex flex-col md:flex-row" style={{ boxSizing: 'border-box' }}>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      />
+
+      {/* Columna izquierda — encuesta */}
+      <div
+        className="relative overflow-hidden flex-1 flex flex-col justify-between px-8 py-10 sm:px-12 sm:py-14"
+        style={{
+          background: 'linear-gradient(140deg, #0A2472, #1E56E8, #5B3FE4)',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          boxSizing: 'border-box',
+        }}
       >
-        <div className="rounded-2xl sm:rounded-3xl shadow-2xl border border-blue-100 overflow-hidden bg-white transform-style-3d">
-          {/* Header con gradiente */}
-          <div className="bg-gradient-to-r from-miraBlue via-blue-600 to-indigo-600 p-5 sm:p-6 md:p-8 text-center relative overflow-hidden">
-            <motion.div
-              initial={{ scale: 0.94, opacity: 0, rotateZ: -180 }}
-              animate={{ scale: 1, opacity: 1, rotateZ: 0 }}
-              transition={{ delay: 0.12, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="mb-3 sm:mb-4"
-            >
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/mira-badge.png" alt="Mira" className="w-full h-full object-contain p-1.5" />
-              </div>
-            </motion.div>
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.25, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="text-2xl sm:text-3xl font-bold text-white mb-2 px-2"
-            >
-              Encuesta Juventudes MIRA
-            </motion.h1>
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="text-blue-100 text-xs sm:text-sm px-2"
-            >
-              Ingresa tu número de Documento para comenzar
-            </motion.p>
+        {/* Halos radiales decorativos */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            top: '-10%',
+            right: '-10%',
+            width: '480px',
+            height: '480px',
+            borderRadius: '9999px',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            bottom: '-15%',
+            left: '-10%',
+            width: '520px',
+            height: '520px',
+            borderRadius: '9999px',
+            background: 'radial-gradient(circle, rgba(91,63,228,0.35), transparent 70%)',
+          }}
+        />
+
+        {/* Bloque superior */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative flex items-center gap-3.5"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mira-badge.png"
+            alt="Juventudes Mira"
+            className="w-[72px] h-[72px] rounded-2xl object-cover flex-shrink-0"
+          />
+          <div className="leading-tight">
+            <p className="text-white font-extrabold tracking-[0.12em] text-sm">SOY JOVEN MIRAÍSTA</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Movimiento MIRA
+            </p>
           </div>
+        </motion.div>
 
-          {/* Formulario */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-            className="p-4 sm:p-6 md:p-8"
+        {/* Bloque central */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative max-w-md py-10"
+        >
+          <p
+            className="text-xs font-extrabold tracking-[0.14em] mb-3"
+            style={{ color: 'rgba(255,255,255,0.75)' }}
           >
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.45, duration: 0.4 }}
-              >
-                <label htmlFor="cedula" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Número de Documento
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                  </div>
-                  <input
-                    id="cedula"
-                    type="text"
-                    {...register('cedula')}
-                    placeholder="Ej: 1234567890"
-                    className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 rounded-[3px] outline-none focus:ring-2 sm:focus:ring-4 transition-all ${
-                      errors.cedula || notFound
-                        ? 'border-red-300 focus:ring-red-200'
-                        : 'border-gray-300 focus:border-miraBlue focus:ring-blue-200'
-                    }`}
-                    onChange={() => {
-                      if (notFound) {
-                        setNotFound(false);
-                      }
-                    }}
-                    disabled={loading}
-                  />
-                </div>
-                {notFound && (
-                  <p className='text-red-300'>La cedula no se encuentra registrada</p>
-                )}
-                {errors.cedula && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-                    className="mt-2 text-xs sm:text-sm text-red-600 flex items-center gap-1"
-                  >
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    <span>{errors.cedula.message}</span>
-                  </motion.p>
-                )}
-              </motion.div>
+            PASO 1 DE 3
+          </p>
+          <h1
+            className="text-white font-extrabold mb-4"
+            style={{ fontSize: '40px', letterSpacing: '-0.02em', lineHeight: 1.1 }}
+          >
+            Encuesta Juventudes MIRA
+          </h1>
+          <p className="mb-7" style={{ color: 'rgba(255,255,255,0.82)' }}>
+            Ingresa tu número de documento para comenzar. Lo usamos solo para evitar respuestas
+            duplicadas.
+          </p>
 
-              <div className='flex flex-col sm:flex-row gap-2 sm:gap-2'>
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ x: -30, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.4 }}
-                  className="w-full py-3 sm:py-4 border-2 border-gray-300 rounded-[2px] text-base sm:text-lg font-semibold shadow-md hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200"
-                  onClick={redirectToRegisterForm}
-                >
-                  <span>Registrarse</span>
-                </motion.button>
-
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ x: 30, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.55, duration: 0.4 }}
-                  className="w-full btn-primary py-3 sm:py-4 rounded-[2px] text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transition-all duration-200"
-                  onClick={handleSubmit(onSubmit)}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Verificando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continuar</span>
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                      </svg>
-                    </>
-                  )}
-                </motion.button>
-              </div>
-            </form>
-
-            {/* Información adicional */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
-              className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200"
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <label
+              htmlFor="cedula"
+              className="block text-sm font-semibold text-white mb-2"
             >
-              <p className="text-xs text-gray-500 text-center px-2 mb-4">
-                🔒 Tus datos están protegidos y serán utilizados únicamente para fines de la encuesta
+              Número de documento
+            </label>
+            <div className="relative mb-2">
+              <CreditCard
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none"
+                style={{ color: 'rgba(255,255,255,0.65)' }}
+                strokeWidth={1.8}
+              />
+              <input
+                id="cedula"
+                type="text"
+                inputMode="numeric"
+                placeholder="1234567890"
+                {...cedulaField}
+                onChange={(e) => {
+                  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 12)
+                  void cedulaField.onChange(e)
+                  if (notFound) setNotFound(false)
+                }}
+                disabled={loading}
+                className="w-full pl-12 pr-4 text-white outline-none transition-colors placeholder:text-white/40 disabled:opacity-60"
+                style={{
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  border: '1.5px solid rgba(255,255,255,0.35)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {notFound ? (
+              <p
+                className="flex items-center gap-1.5 text-sm mb-6"
+                style={{ color: '#FFC2D1' }}
+              >
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.8} />
+                La cédula no se encuentra registrada
               </p>
-              <div className="text-center">
-                <a
-                  href="/admin/login"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-miraBlue via-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                  </svg>
-                  <span>Acceso coordinadores y admin</span>
-                </a>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.div>
+            ) : errors.cedula ? (
+              <p
+                className="flex items-center gap-1.5 text-sm mb-6"
+                style={{ color: '#FFC2D1' }}
+              >
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.8} />
+                {errors.cedula.message}
+              </p>
+            ) : (
+              <p
+                className="text-sm mb-6"
+                style={{ color: showLiveError ? '#FFC2D1' : 'rgba(255,255,255,0.6)' }}
+              >
+                Sin puntos ni espacios.
+              </p>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={handleSubmit(onSubmit)}
+                className="flex-1 flex items-center justify-center gap-2 font-semibold transition-[opacity,box-shadow] active:scale-[0.98] disabled:cursor-not-allowed"
+                style={{
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#0A2472',
+                  opacity: isValidCedula ? 1 : 0.55,
+                  boxShadow: isValidCedula ? '0 12px 24px -10px rgba(0,0,0,0.35)' : 'none',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-[#0A2472] border-t-transparent rounded-full animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    Comenzar encuesta
+                    <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                  </>
+                )}
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={redirectToRegisterForm}
+                className="flex-1 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  border: '1.5px solid rgba(255,255,255,0.35)',
+                  boxSizing: 'border-box',
+                }}
+              >
+                Aún no estoy registrado
+              </button>
+            </div>
+          </form>
+        </motion.div>
+
+        {/* Bloque inferior */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="relative flex items-center gap-4 text-sm"
+          style={{ color: 'rgba(255,255,255,0.6)' }}
+        >
+          <span>5 minutos</span>
+          <span>·</span>
+          <span>18 preguntas</span>
+          <span>·</span>
+          <span>Respuestas anónimas</span>
+        </motion.div>
+      </div>
+
+      {/* Columna derecha — acceso interno */}
+      <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="flex-1 flex">
+        <CoordinadorLogin />
+      </div>
     </div>
   )
 }
