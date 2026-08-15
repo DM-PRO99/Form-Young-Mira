@@ -106,7 +106,7 @@ export default function CoordinadorLogin() {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 disabled={isPending}
-                className="text-sm font-medium disabled:opacity-60"
+                className="landing-toggle text-sm font-medium disabled:opacity-60"
                 style={{ color: '#1E56E8' }}
               >
                 {showPassword ? 'Ocultar' : 'Ver'}
@@ -144,7 +144,7 @@ export default function CoordinadorLogin() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full flex items-center justify-center gap-2 text-white text-sm font-semibold transition-transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="landing-btn-primary w-full flex items-center justify-center gap-2 text-white text-sm font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
             style={{
               height: '56px',
               borderRadius: '14px',

@@ -209,3 +209,59 @@ body {
     transform: none;
   }
 }
+
+/* ─── Landing / login ("Soy Joven Miraísta"): motion 3D ────────────────── */
+
+.landing-btn-primary {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-btn-primary:hover:not(:disabled) {
+  transform: perspective(600px) translateY(-2px) rotateX(6deg);
+  filter: brightness(1.06);
+}
+
+.landing-btn-primary:active:not(:disabled) {
+  transform: perspective(600px) translateY(1px) rotateX(-3deg);
+}
+
+.landing-btn-secondary {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-btn-secondary:hover:not(:disabled) {
+  transform: perspective(600px) translateY(-2px) rotateX(6deg);
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.landing-btn-secondary:active:not(:disabled) {
+  transform: perspective(600px) translateY(1px) rotateX(-3deg);
+}
+
+.landing-toggle {
+  transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-toggle:hover:not(:disabled) {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-btn-primary,
+  .landing-btn-secondary,
+  .landing-toggle {
+    transition: none;
+  }
+
+  .landing-btn-primary:hover:not(:disabled),
+  .landing-btn-primary:active:not(:disabled),
+  .landing-btn-secondary:hover:not(:disabled),
+  .landing-btn-secondary:active:not(:disabled) {
+    transform: none;
+  }
+}

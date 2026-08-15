@@ -318,7 +318,7 @@ const Home = () => {
                 type="submit"
                 disabled={loading}
                 onClick={handleSubmit(onSubmit)}
-                className="flex-1 flex items-center justify-center gap-2 font-semibold transition-[opacity,box-shadow] active:scale-[0.98] disabled:cursor-not-allowed"
+                className="landing-btn-primary flex-1 flex items-center justify-center gap-2 font-semibold transition-[opacity,box-shadow] disabled:cursor-not-allowed"
                 style={{
                   height: '56px',
                   borderRadius: '14px',
@@ -346,12 +346,10 @@ const Home = () => {
                 type="submit"
                 disabled={loading}
                 onClick={redirectToRegisterForm}
-                className="flex-1 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                className="landing-btn-secondary flex-1 font-semibold text-white bg-white/10 border-[1.5px] border-white/35 disabled:cursor-not-allowed disabled:opacity-60"
                 style={{
                   height: '56px',
                   borderRadius: '14px',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  border: '1.5px solid rgba(255,255,255,0.35)',
                   boxSizing: 'border-box',
                 }}
               >
