@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getUserMunicipios } from '@/lib/rbac'
+import { withCors, corsPreflight } from '@/lib/cors'
 
-export async function GET() {
+export { corsPreflight as OPTIONS }
+
+export const GET = withCors(async (_req: NextRequest) => {
   const session = await auth()
   if (!session?.user) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -18,4 +21,4 @@ export async function GET() {
     role: session.user.role,
     municipios,
   })
-}
+})

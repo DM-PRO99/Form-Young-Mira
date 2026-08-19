@@ -6,10 +6,13 @@ import Submission from '@/models/Submission'
 import SyncFailure from '@/models/SyncFailure'
 import { appendRow } from '@/lib/googleSheets'
 import { z } from 'zod'
+import { withCors, corsPreflight } from '@/lib/cors'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export { corsPreflight as OPTIONS }
+
+export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -29,13 +32,13 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   }
 
   return NextResponse.json({ data: submission })
-}
+})
 
 const updateSchema = z.object({
   datos: z.record(z.unknown()),
 })
 
-export async function PATCH(req: NextRequest, { params }: RouteContext) {
+export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -81,9 +84,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   return NextResponse.json({ data: submission })
-}
+})
 
-export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+export const DELETE = withCors(async (_req: NextRequest, { params }: RouteContext) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -105,4 +108,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   await submission.deleteOne()
 
   return NextResponse.json({ success: true })
-}
+})

@@ -4,8 +4,11 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { withCors, corsPreflight } from '@/lib/cors'
 
-export async function GET() {
+export { corsPreflight as OPTIONS }
+
+export const GET = withCors(async () => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (session.user.role !== 'admin') {
@@ -20,7 +23,7 @@ export async function GET() {
     .select('-passwordHash')
     .lean()
   return NextResponse.json({ data: users })
-}
+})
 
 const createSchema = z.object({
   email: z.string().email('Correo inválido'),
@@ -29,7 +32,7 @@ const createSchema = z.object({
   municipios: z.array(z.string()).default([]),
 })
 
-export async function POST(req: NextRequest) {
+export const POST = withCors(async (req: NextRequest) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (session.user.role !== 'admin') {
@@ -64,4 +67,4 @@ export async function POST(req: NextRequest) {
     .lean()
 
   return NextResponse.json({ data: user }, { status: 201 })
-}
+})

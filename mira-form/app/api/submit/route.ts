@@ -1,10 +1,23 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { appendRow } from '@/lib/googleSheets'
 import { connectToMongoDB } from '@/lib/mongodb'
 import Submission from '@/models/Submission'
 import SyncFailure from '@/models/SyncFailure'
+import { withCors, corsPreflight } from '@/lib/cors'
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit'
 
-export async function POST(request: Request) {
+export { corsPreflight as OPTIONS }
+
+export const POST = withCors(async (request: NextRequest) => {
+  const ip = getClientIp(request)
+  const allowed = await checkRateLimit(`submit:${ip}`, 10, 10 * 60 * 1000)
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, message: 'Demasiadas solicitudes, intenta de nuevo más tarde' },
+      { status: 429 }
+    )
+  }
+
   let data: Record<string, unknown>
   try {
     data = (await request.json()) as Record<string, unknown>
@@ -44,4 +57,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ success: true, message: 'Registro exitoso' })
-}
+})

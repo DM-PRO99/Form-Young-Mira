@@ -4,6 +4,7 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { withCors, corsPreflight } from '@/lib/cors'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -14,7 +15,9 @@ const updateSchema = z.object({
   password: z.string().min(8).optional(),
 })
 
-export async function GET(req: NextRequest, { params }: RouteContext) {
+export { corsPreflight as OPTIONS }
+
+export const GET = withCors(async (req: NextRequest, { params }: RouteContext) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -32,9 +35,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
   return NextResponse.json({ data: user })
-}
+})
 
-export async function PATCH(req: NextRequest, { params }: RouteContext) {
+export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (session.user.role !== 'admin') {
@@ -67,4 +70,4 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
   return NextResponse.json({ data: user })
-}
+})

@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
 import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
+import { withCors, corsPreflight } from '@/lib/cors'
 
 type MongoFilter = Record<string, unknown>
 
@@ -56,7 +57,9 @@ function escapeCsv(value: unknown): string {
   return str
 }
 
-export async function GET(req: NextRequest) {
+export { corsPreflight as OPTIONS }
+
+export const GET = withCors(async (req: NextRequest) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -128,4 +131,4 @@ export async function GET(req: NextRequest) {
       'Content-Disposition': `attachment; filename="registros-${today}.csv"`,
     },
   })
-}
+})

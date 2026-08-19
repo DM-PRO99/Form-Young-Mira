@@ -1,27 +1,20 @@
-interface RateLimitRecord {
-  count: number
-  resetAt: number
+import { connectToMongoDB } from '@/lib/mongodb'
+import RateLimit from '@/models/RateLimit'
+
+export function getClientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0].trim()
+  return req.headers.get('x-real-ip') ?? 'unknown'
 }
 
-// Nota: Map en memoria — válido para proceso único. En Vercel con múltiples instancias
-// considera usar Redis (Upstash) para rate limiting distribuido.
-const store = new Map<string, RateLimitRecord>()
+export async function checkRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
+  await connectToMongoDB()
 
-export function checkRateLimit(
-  key: string,
-  limit = 5,
-  windowMs = 60_000
-): boolean {
-  const now = Date.now()
-  const record = store.get(key)
+  const doc = await RateLimit.findOneAndUpdate(
+    { key },
+    { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date(Date.now() + windowMs) } },
+    { upsert: true, new: true }
+  )
 
-  if (!record || record.resetAt < now) {
-    store.set(key, { count: 1, resetAt: now + windowMs })
-    return true
-  }
-
-  if (record.count >= limit) return false
-
-  record.count++
-  return true
+  return doc.count <= limit
 }

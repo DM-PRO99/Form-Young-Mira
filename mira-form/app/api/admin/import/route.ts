@@ -3,8 +3,11 @@ import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
 import Submission from '@/models/Submission'
 import { getSheetData } from '@/lib/googleSheets'
+import { withCors, corsPreflight } from '@/lib/cors'
 
-export async function POST(req: NextRequest) {
+export { corsPreflight as OPTIONS }
+
+export const POST = withCors(async (req: NextRequest) => {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (session.user.role !== 'admin') {
@@ -98,4 +101,4 @@ export async function POST(req: NextRequest) {
       details: error.toString()
     }, { status: 500 })
   }
-}
+})
