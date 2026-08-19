@@ -1,7 +1,7 @@
 import { sheets } from "@/lib/googleSheets"; // or use your helper
 import { NextRequest, NextResponse } from "next/server";
 import { withCors, corsPreflight } from "@/lib/cors";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkApiRateLimit, getClientIp } from "@/lib/apiRateLimit";
 
 export { corsPreflight as OPTIONS };
 
@@ -10,7 +10,7 @@ export const GET = withCors(async (
   { params }: { params: Promise<{ cedula: string }> }
 ) => {
   const ip = getClientIp(request);
-  const allowed = await checkRateLimit(`cedula:${ip}`, 30, 5 * 60 * 1000);
+  const allowed = await checkApiRateLimit(`cedula:${ip}`, 30, 5 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json({ error: "Demasiadas solicitudes, intenta de nuevo más tarde" }, { status: 429 });
   }

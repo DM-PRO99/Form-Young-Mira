@@ -4,13 +4,13 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import Submission from '@/models/Submission'
 import SyncFailure from '@/models/SyncFailure'
 import { withCors, corsPreflight } from '@/lib/cors'
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit'
+import { checkApiRateLimit, getClientIp } from '@/lib/apiRateLimit'
 
 export { corsPreflight as OPTIONS }
 
 export const POST = withCors(async (request: NextRequest) => {
   const ip = getClientIp(request)
-  const allowed = await checkRateLimit(`submit:${ip}`, 10, 10 * 60 * 1000)
+  const allowed = await checkApiRateLimit(`submit:${ip}`, 10, 10 * 60 * 1000)
   if (!allowed) {
     return NextResponse.json(
       { success: false, message: 'Demasiadas solicitudes, intenta de nuevo más tarde' },
