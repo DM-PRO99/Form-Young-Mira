@@ -1,3 +1,4 @@
+import { Types } from 'mongoose'
 import { connectToMongoDB } from '@/lib/mongodb'
 import User from '@/models/User'
 
@@ -7,4 +8,16 @@ export async function getUserMunicipios(userId: string): Promise<string[]> {
   await connectToMongoDB()
   const user = await User.findById(userId).select('municipios').lean()
   return user?.municipios ?? []
+}
+
+export function canAccessEvent(
+  userId: string,
+  role: string,
+  event: { creadoPor: Types.ObjectId; coordinadoresAsignados: Types.ObjectId[] }
+): boolean {
+  if (role === 'admin') return true
+  return (
+    event.creadoPor.toString() === userId ||
+    event.coordinadoresAsignados.some((c) => c.toString() === userId)
+  )
 }

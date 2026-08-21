@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, FileText, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, Users, Calendar, LogOut } from 'lucide-react'
+import { getInitials } from '@/lib/initials'
 
 interface SidebarUser {
   id: string
@@ -15,18 +16,6 @@ interface SidebarUser {
 
 interface SidebarProps {
   user: SidebarUser
-}
-
-function getInitials(name?: string | null, email?: string | null): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/)
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return name.slice(0, 2).toUpperCase()
-  }
-  if (email) return email.slice(0, 2).toUpperCase()
-  return 'AD'
 }
 
 function roleLabel(role: string): string {
@@ -81,6 +70,7 @@ export default function Sidebar({ user }: SidebarProps) {
     ...(user.role === 'admin'
       ? [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }]
       : []),
+    { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
   ]
 
   function isActive(item: NavItem): boolean {

@@ -26,6 +26,8 @@ module.exports = {
         'success-tint': '#E6F6EF',
         danger: '#9B2C48',
         'danger-tint': '#FDF2F5',
+        warning: '#8A5E12',
+        'warning-tint': '#FFF4E0',
       },
       fontFamily: {
         sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],

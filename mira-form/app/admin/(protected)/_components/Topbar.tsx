@@ -22,6 +22,15 @@ function getPageMeta(pathname: string): PageMeta {
   if (pathname.startsWith('/admin/usuarios')) {
     return { title: 'Usuarios', subtitle: 'Administradores y coordinadores del panel' }
   }
+  if (pathname === '/admin/eventos/nuevo') {
+    return { title: 'Crear evento', subtitle: 'Nuevo evento de juventudes' }
+  }
+  if (pathname === '/admin/eventos') {
+    return { title: 'Eventos', subtitle: 'Eventos de juventudes' }
+  }
+  if (pathname.startsWith('/admin/eventos/')) {
+    return { title: 'Detalle del evento', subtitle: 'Inscripciones, inventario y tareas' }
+  }
   return { title: 'Panel', subtitle: '' }
 }
 
