@@ -6,6 +6,7 @@ import Event from '@/models/Event'
 import Registration from '@/models/Registration'
 import { withCors, corsPreflight } from '@/lib/cors'
 import { checkApiRateLimit, getClientIp } from '@/lib/apiRateLimit'
+import { sendRegistrationThankYou } from '@/lib/email'
 import { z } from 'zod'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -119,6 +120,20 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
       )
     }
     throw err
+  }
+
+  if (parsed.data.correo) {
+    try {
+      await sendRegistrationThankYou({
+        to: parsed.data.correo,
+        nombreCompleto: parsed.data.nombreCompleto,
+        eventoNombre: event.nombre,
+        eventoFecha: event.fecha,
+        eventoLugar: event.lugar,
+      })
+    } catch (err) {
+      console.error('Error al enviar correo de agradecimiento (no fatal):', err)
+    }
   }
 
   return NextResponse.json({ success: true, message: 'Inscripción exitosa' })

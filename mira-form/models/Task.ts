@@ -4,7 +4,7 @@ export interface ITask {
   _id: Types.ObjectId
   eventoId: Types.ObjectId
   titulo: string
-  responsableId?: Types.ObjectId
+  responsable?: string
   fechaLimite?: Date
   completada: boolean
   createdAt: Date
@@ -15,7 +15,7 @@ const taskSchema = new Schema<ITask>(
   {
     eventoId: { type: Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
     titulo: { type: String, required: true },
-    responsableId: { type: Schema.Types.ObjectId, ref: 'User' },
+    responsable: { type: String },
     fechaLimite: { type: Date },
     completada: { type: Boolean, default: false },
   },

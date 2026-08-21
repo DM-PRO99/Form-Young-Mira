@@ -5,7 +5,7 @@ export interface IInventoryItem {
   eventoId: Types.ObjectId
   nombre: string
   cantidad?: string
-  responsableId?: Types.ObjectId
+  responsable?: string
   estado: 'pendiente' | 'comprado' | 'conseguido'
   notas?: string
   createdAt: Date
@@ -17,7 +17,7 @@ const inventoryItemSchema = new Schema<IInventoryItem>(
     eventoId: { type: Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
     nombre: { type: String, required: true },
     cantidad: { type: String },
-    responsableId: { type: Schema.Types.ObjectId, ref: 'User' },
+    responsable: { type: String },
     estado: { type: String, enum: ['pendiente', 'comprado', 'conseguido'], default: 'pendiente' },
     notas: { type: String },
   },

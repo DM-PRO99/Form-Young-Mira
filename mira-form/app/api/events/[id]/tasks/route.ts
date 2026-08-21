@@ -25,7 +25,6 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
   }
 
   const data = await Task.find({ eventoId: id })
-    .populate('responsableId', 'nombre email')
     .sort({ fechaLimite: 1, createdAt: 1 })
     .lean()
 
@@ -34,7 +33,7 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 
 const createSchema = z.object({
   titulo: z.string().min(1, 'El título es requerido'),
-  responsableId: z.string().optional(),
+  responsable: z.string().optional(),
   fechaLimite: z.string().optional(),
 })
 
@@ -60,7 +59,7 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
   const task = await Task.create({
     eventoId: id,
     titulo: parsed.data.titulo,
-    responsableId: parsed.data.responsableId || undefined,
+    responsable: parsed.data.responsable || undefined,
     fechaLimite: parsed.data.fechaLimite ? new Date(parsed.data.fechaLimite) : undefined,
   })
 

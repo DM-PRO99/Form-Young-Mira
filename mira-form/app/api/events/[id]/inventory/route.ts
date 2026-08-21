@@ -31,7 +31,6 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
   if (error) return error
 
   const data = await InventoryItem.find({ eventoId: id })
-    .populate('responsableId', 'nombre email')
     .sort({ createdAt: 1 })
     .lean()
 
@@ -41,7 +40,7 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 const createSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   cantidad: z.string().optional(),
-  responsableId: z.string().optional(),
+  responsable: z.string().optional(),
   notas: z.string().optional(),
 })
 
@@ -65,7 +64,7 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
     eventoId: id,
     nombre: parsed.data.nombre,
     cantidad: parsed.data.cantidad,
-    responsableId: parsed.data.responsableId || undefined,
+    responsable: parsed.data.responsable || undefined,
     notas: parsed.data.notas,
   })
 

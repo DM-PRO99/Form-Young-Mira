@@ -64,7 +64,7 @@ interface InventoryRow {
   _id: string
   nombre: string
   cantidad?: string
-  responsableId?: UserLite
+  responsable?: string
   estado: 'pendiente' | 'comprado' | 'conseguido'
   notas?: string
 }
@@ -72,7 +72,7 @@ interface InventoryRow {
 interface TaskRow {
   _id: string
   titulo: string
-  responsableId?: UserLite
+  responsable?: string
   fechaLimite?: string
   completada: boolean
 }
@@ -462,6 +462,7 @@ function InventarioTab({ id }: { id: string }) {
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
   const [cantidad, setCantidad] = useState('')
+  const [responsable, setResponsable] = useState('')
 
   const fetchItems = useCallback(async () => {
     const res = await fetch(`/api/events/${id}/inventory`)
@@ -481,14 +482,28 @@ function InventarioTab({ id }: { id: string }) {
     const res = await fetch(`/api/events/${id}/inventory`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, cantidad: cantidad || undefined }),
+      body: JSON.stringify({ nombre, cantidad: cantidad || undefined, responsable: responsable || undefined }),
     })
     if (res.ok) {
       setNombre('')
       setCantidad('')
+      setResponsable('')
       void fetchItems()
     } else {
       toast.error('No se pudo agregar el ítem')
+    }
+  }
+
+  async function handleUpdateResponsable(itemId: string, value: string) {
+    setItems((prev) => prev.map((i) => (i._id === itemId ? { ...i, responsable: value } : i)))
+    const res = await fetch(`/api/events/${id}/inventory/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ responsable: value || null }),
+    })
+    if (!res.ok) {
+      toast.error('No se pudo actualizar el responsable')
+      void fetchItems()
     }
   }
 
@@ -534,7 +549,13 @@ function InventarioTab({ id }: { id: string }) {
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
             placeholder="Cantidad (ej. 30 pliegos)"
-            className="w-48 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+            className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+          />
+          <input
+            value={responsable}
+            onChange={(e) => setResponsable(e.target.value)}
+            placeholder="Responsable (nombre)"
+            className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
           />
           <button onClick={handleAdd} className="flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium text-white btn-primary-3d rounded-field flex-shrink-0">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
@@ -566,16 +587,23 @@ function InventarioTab({ id }: { id: string }) {
                       <td className="px-[22px] py-[14px] text-ink">{item.nombre}</td>
                       <td className="px-[22px] py-[14px] text-ink-muted font-mono text-[12.5px]">{item.cantidad ?? '—'}</td>
                       <td className="px-[22px] py-[14px]">
-                        {item.responsableId ? (
-                          <span className="inline-flex items-center gap-1.5 text-ink-muted">
-                            <span className="w-5 h-5 rounded-full bg-primary-tint text-primary text-[9px] font-semibold flex items-center justify-center">
-                              {getInitials(item.responsableId.nombre, item.responsableId.email)}
+                        <div className="flex items-center gap-1.5">
+                          {item.responsable && (
+                            <span className="w-5 h-5 rounded-full bg-primary-tint text-primary text-[9px] font-semibold flex items-center justify-center flex-shrink-0">
+                              {getInitials(item.responsable)}
                             </span>
-                            {item.responsableId.nombre}
-                          </span>
-                        ) : (
-                          <span className="text-ink-faint">Sin asignar</span>
-                        )}
+                          )}
+                          <input
+                            defaultValue={item.responsable ?? ''}
+                            onBlur={(e) => {
+                              if (e.target.value !== (item.responsable ?? '')) {
+                                void handleUpdateResponsable(item._id, e.target.value)
+                              }
+                            }}
+                            placeholder="Sin asignar"
+                            className="w-full min-w-0 px-1.5 py-1 text-[13px] text-ink bg-transparent border border-transparent rounded-[6px] outline-none hover:border-border-input focus:border-primary focus:bg-white focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+                          />
+                        </div>
                       </td>
                       <td className="px-[22px] py-[14px]">
                         <button
@@ -632,6 +660,7 @@ function TareasTab({ id }: { id: string }) {
   const [tasks, setTasks] = useState<TaskRow[]>([])
   const [loading, setLoading] = useState(true)
   const [titulo, setTitulo] = useState('')
+  const [responsable, setResponsable] = useState('')
 
   const fetchTasks = useCallback(async () => {
     const res = await fetch(`/api/events/${id}/tasks`)
@@ -651,10 +680,11 @@ function TareasTab({ id }: { id: string }) {
     const res = await fetch(`/api/events/${id}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo }),
+      body: JSON.stringify({ titulo, responsable: responsable || undefined }),
     })
     if (res.ok) {
       setTitulo('')
+      setResponsable('')
       void fetchTasks()
     } else {
       toast.error('No se pudo agregar la tarea')
@@ -683,6 +713,12 @@ function TareasTab({ id }: { id: string }) {
           placeholder="Nueva tarea..."
           className="flex-1 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
         />
+        <input
+          value={responsable}
+          onChange={(e) => setResponsable(e.target.value)}
+          placeholder="Responsable (nombre)"
+          className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+        />
         <button onClick={handleAdd} className="flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium text-white btn-primary-3d rounded-field flex-shrink-0">
           <Plus className="w-4 h-4" strokeWidth={1.8} />
           Agregar
@@ -706,8 +742,8 @@ function TareasTab({ id }: { id: string }) {
               <p className={'flex-1 text-[13.5px] ' + (task.completada ? 'line-through text-ink-faint' : 'text-ink')}>
                 {task.titulo}
               </p>
-              {task.responsableId && (
-                <span className="text-[12px] text-ink-muted flex-shrink-0">{task.responsableId.nombre}</span>
+              {task.responsable && (
+                <span className="text-[12px] text-ink-muted flex-shrink-0">{task.responsable}</span>
               )}
               {task.fechaLimite && (
                 <span

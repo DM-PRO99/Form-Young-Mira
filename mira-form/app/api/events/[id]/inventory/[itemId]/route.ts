@@ -14,7 +14,7 @@ export { corsPreflight as OPTIONS }
 const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
   cantidad: z.string().optional(),
-  responsableId: z.string().nullable().optional(),
+  responsable: z.string().nullable().optional(),
   estado: z.enum(['pendiente', 'comprado', 'conseguido']).optional(),
   notas: z.string().optional(),
 })
@@ -43,8 +43,8 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
 
   if (parsed.data.nombre !== undefined) item.nombre = parsed.data.nombre
   if (parsed.data.cantidad !== undefined) item.cantidad = parsed.data.cantidad
-  if (parsed.data.responsableId !== undefined) {
-    item.responsableId = (parsed.data.responsableId || undefined) as unknown as typeof item.responsableId
+  if (parsed.data.responsable !== undefined) {
+    item.responsable = parsed.data.responsable || undefined
   }
   if (parsed.data.estado !== undefined) item.estado = parsed.data.estado
   if (parsed.data.notas !== undefined) item.notas = parsed.data.notas

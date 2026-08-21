@@ -13,7 +13,7 @@ export { corsPreflight as OPTIONS }
 
 const updateSchema = z.object({
   titulo: z.string().min(1).optional(),
-  responsableId: z.string().nullable().optional(),
+  responsable: z.string().nullable().optional(),
   fechaLimite: z.string().nullable().optional(),
   completada: z.boolean().optional(),
 })
@@ -41,8 +41,8 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
   if (!task) return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 })
 
   if (parsed.data.titulo !== undefined) task.titulo = parsed.data.titulo
-  if (parsed.data.responsableId !== undefined) {
-    task.responsableId = (parsed.data.responsableId || undefined) as unknown as typeof task.responsableId
+  if (parsed.data.responsable !== undefined) {
+    task.responsable = parsed.data.responsable || undefined
   }
   if (parsed.data.fechaLimite !== undefined) {
     task.fechaLimite = parsed.data.fechaLimite ? new Date(parsed.data.fechaLimite) : undefined
