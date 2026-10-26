@@ -6,9 +6,9 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
-import { ArrowLeft, Copy, Check, ShieldCheck, Plus, Trash2 } from 'lucide-react'
-import Link from 'next/link'
-import { getInitials } from '@/lib/initials'
+import { Copy, Check, ShieldCheck, Plus, Trash2, Link2, Lock, Users } from 'lucide-react'
+import { Avatar, BackLink, Button, Card, CardHeader, Eyebrow, IconButton, Input, Textarea } from '@/components/admin/ui'
+import { cn } from '@/lib/cn'
 
 const FormSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -30,6 +30,18 @@ interface Coordinador {
   nombre: string
   email: string
   role: 'admin' | 'coordinador'
+}
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <p className="text-[12px] text-danger mt-1.5">{message}</p> : null
+}
+
+function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className="block text-[13px] font-medium text-ink mb-1.5">
+      {children}
+    </label>
+  )
 }
 
 export default function NuevoEventoPage() {
@@ -117,134 +129,97 @@ export default function NuevoEventoPage() {
     setTimeout(() => setCopied(false), 1500)
   }
 
-  return (
-    <div className="admin-view">
-      <Link
-        href="/admin/eventos"
-        className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-primary transition-transform duration-150 hover:-translate-x-0.5 mb-4"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-        Volver a eventos
-      </Link>
-
-      {createdId ? (
-        <div className="bg-surface rounded-card border border-border shadow-card p-8 max-w-xl">
-          <div className="w-10 h-10 rounded-full bg-success-tint flex items-center justify-center mb-4">
+  if (createdId) {
+    return (
+      <div className="admin-view">
+        <BackLink href="/admin/eventos">Volver a eventos</BackLink>
+        <Card className="celebrate-in p-6 md:p-8 max-w-xl">
+          <div className="w-11 h-11 rounded-full bg-success-tint flex items-center justify-center mb-4">
             <Check className="w-5 h-5 text-success" strokeWidth={2} />
           </div>
-          <h3 className="text-[17px] font-semibold text-ink mb-1">Evento creado</h3>
-          <p className="text-[13.5px] text-ink-muted mb-5">
-            Comparte este enlace para que las personas se inscriban.
-          </p>
-          <div className="bg-primary-tint rounded-field p-4 flex items-center justify-between gap-3 mb-5">
+          <h2 className="text-[18px] font-semibold text-ink mb-1">Evento creado</h2>
+          <p className="text-[13.5px] text-ink-muted mb-5">Comparte este enlace para que las personas se inscriban.</p>
+          <div className="bg-primary-tint rounded-field p-3 pl-4 flex items-center justify-between gap-3 mb-5">
             <p className="font-mono text-[12.5px] text-primary truncate">{publicUrl}</p>
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 text-[12.5px] font-medium text-primary flex-shrink-0"
-            >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            <Button size="sm" variant="secondary" onClick={handleCopy} icon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}>
               {copied ? 'Copiado' : 'Copiar'}
-            </button>
+            </Button>
           </div>
-          <button
-            onClick={() => router.push(`/admin/eventos/${createdId}`)}
-            className="btn-primary-3d px-4 py-2.5 text-[13.5px] text-white rounded-field font-medium"
-          >
-            Ver evento
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-[1.6fr_1fr] gap-6 items-start">
-          <form className="bg-surface rounded-card border border-border shadow-card p-7 grid grid-cols-2 gap-5">
-            <div className="col-span-2">
-              <label className="block text-[13px] font-medium text-ink mb-1.5">Nombre del evento</label>
-              <input
-                {...register('nombre')}
-                className="w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                placeholder="Ej. Encuentro de juventudes 2026"
-              />
-              {errors.nombre && <p className="text-[12px] text-danger mt-1">{errors.nombre.message}</p>}
-            </div>
+          <Button onClick={() => router.push(`/admin/eventos/${createdId}`)}>Ver evento</Button>
+        </Card>
+      </div>
+    )
+  }
 
-            <div className="col-span-2">
-              <label className="block text-[13px] font-medium text-ink mb-1.5">Fecha y hora</label>
-              <div className="space-y-2">
+  return (
+    <div className="admin-view pb-20 lg:pb-0">
+      <BackLink href="/admin/eventos">Volver a eventos</BackLink>
+      <h2 className="text-[20px] font-semibold text-ink leading-tight tracking-[-0.01em] mb-5">Nuevo evento</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5 lg:gap-6 items-start">
+        <form id="nuevo-evento" className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <Card>
+            <CardHeader title="Información del evento" description="Lo que verán las personas en el enlace de inscripción." />
+            <div className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="sm:col-span-2">
+                <Label htmlFor="nombre">Nombre del evento</Label>
+                <Input id="nombre" {...register('nombre')} placeholder="Ej. Encuentro de juventudes 2026" />
+                <FieldError message={errors.nombre?.message} />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor="lugar">Lugar</Label>
+                <Input id="lugar" {...register('lugar')} placeholder="Ej. Coliseo municipal, Itagüí" />
+                <FieldError message={errors.lugar?.message} />
+              </div>
+
+              <div>
+                <Label htmlFor="capacidad">Cupo por fecha (opcional)</Label>
+                <Input id="capacidad" type="number" min={1} inputMode="numeric" {...register('capacidadMaxima')} placeholder="Ej. 120" />
+                <FieldError message={errors.capacidadMaxima?.message} />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor="descripcion">Descripción pública</Label>
+                <Textarea id="descripcion" {...register('descripcionPublica')} placeholder="Lo que verán las personas al inscribirse…" />
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Fechas" description="Programa una o varias fechas; cada persona elige a cuál asistir." />
+            <div className="p-5 md:p-6">
+              <div className="space-y-2.5">
                 {fechaFields.map((field, index) => (
                   <div key={field.id}>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="datetime-local"
-                        {...register(`fechas.${index}.value`)}
-                        className="flex-1 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                      />
+                      <span className="w-6 text-[12px] font-semibold text-ink-faint tabular-nums flex-shrink-0">{index + 1}.</span>
+                      <Input type="datetime-local" {...register(`fechas.${index}.value`)} aria-label={`Fecha ${index + 1}`} className="flex-1" />
                       {fechaFields.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeFecha(index)}
-                          className="text-ink-faint hover:text-danger transition-colors duration-150 flex-shrink-0"
-                        >
+                        <IconButton label={`Quitar fecha ${index + 1}`} tone="danger" onClick={() => removeFecha(index)}>
                           <Trash2 className="w-4 h-4" strokeWidth={1.8} />
-                        </button>
+                        </IconButton>
                       )}
                     </div>
-                    {errors.fechas?.[index]?.value && (
-                      <p className="text-[12px] text-danger mt-1">{errors.fechas[index]?.value?.message}</p>
-                    )}
+                    <div className="pl-8">
+                      <FieldError message={errors.fechas?.[index]?.value?.message} />
+                    </div>
                   </div>
                 ))}
               </div>
-              {errors.fechas?.root?.message && (
-                <p className="text-[12px] text-danger mt-1">{errors.fechas.root.message}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => appendFecha({ value: '' })}
-                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-primary mt-2"
-              >
-                <Plus className="w-3.5 h-3.5" strokeWidth={1.8} />
+              <FieldError message={errors.fechas?.root?.message} />
+              <Button variant="ghost" size="sm" className="mt-3 text-primary" icon={<Plus className="w-4 h-4" strokeWidth={1.8} />} onClick={() => appendFecha({ value: '' })}>
                 Agregar otra fecha
-              </button>
+              </Button>
             </div>
+          </Card>
 
-            <div>
-              <label className="block text-[13px] font-medium text-ink mb-1.5">Cupo máximo (opcional)</label>
-              <input
-                type="number"
-                min={1}
-                {...register('capacidadMaxima')}
-                className="w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                placeholder="Ej. 120"
-              />
-              {errors.capacidadMaxima && (
-                <p className="text-[12px] text-danger mt-1">{errors.capacidadMaxima.message}</p>
-              )}
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-[13px] font-medium text-ink mb-1.5">Lugar</label>
-              <input
-                {...register('lugar')}
-                className="w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                placeholder="Ej. Coliseo municipal, Itagüí"
-              />
-              {errors.lugar && <p className="text-[12px] text-danger mt-1">{errors.lugar.message}</p>}
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-[13px] font-medium text-ink mb-1.5">Descripción pública</label>
-              <textarea
-                {...register('descripcionPublica')}
-                rows={3}
-                className="w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150 resize-none"
-                placeholder="Lo que verán las personas al inscribirse..."
-              />
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-[13px] font-medium text-ink mb-2">Coordinadores</label>
+          <Card>
+            <CardHeader title="Coordinadores" description="Quiénes pueden ver y gestionar este evento." />
+            <div className="p-5 md:p-6">
               {role === 'admin' ? (
                 coordinadores.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-faint">No hay coordinadores registrados aún.</p>
+                  <p className="text-[13px] text-ink-faint">No hay coordinadores registrados aún.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {coordinadores.map((c) => {
@@ -253,18 +228,17 @@ export default function NuevoEventoPage() {
                         <button
                           key={c._id}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => toggleCoordinador(c._id)}
-                          className={
-                            'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] font-medium border transition-colors duration-150 ' +
-                            (active
-                              ? 'bg-primary-tint border-primary text-primary'
-                              : 'bg-white border-border-input text-ink-muted hover:border-primary/40')
-                          }
+                          className={cn(
+                            'press flex items-center gap-2 h-9 pl-1 pr-3 rounded-full border text-[12.5px] font-medium',
+                            'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20',
+                            active ? 'bg-primary-tint border-primary/40 text-primary' : 'bg-white border-border-input text-ink-muted hover:border-primary/40'
+                          )}
                         >
-                          <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9.5px] font-semibold">
-                            {getInitials(c.nombre, c.email)}
-                          </span>
+                          <Avatar name={c.nombre} email={c.email} size="xs" className={active ? 'bg-primary text-white' : ''} />
                           {c.nombre}
+                          {active && <Check className="w-3.5 h-3.5" strokeWidth={2} />}
                         </button>
                       )
                     })}
@@ -273,56 +247,60 @@ export default function NuevoEventoPage() {
               ) : (
                 <div className="flex items-start gap-2.5 bg-primary-tint rounded-field p-3">
                   <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" strokeWidth={1.8} />
-                  <p className="text-[12.5px] text-primary">
-                    Quedarás asignado automáticamente como coordinador de este evento.
-                  </p>
+                  <p className="text-[12.5px] text-primary">Quedarás asignado automáticamente como coordinador de este evento.</p>
                 </div>
               )}
             </div>
+          </Card>
 
-            <div className="col-span-2 flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={handleSubmit((data) => onSubmit(data, 'publicado'))}
-                className="btn-primary-3d px-4 py-2.5 text-[13.5px] text-white rounded-field font-medium disabled:opacity-60"
-              >
-                Publicar y generar enlace
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={handleSubmit((data) => onSubmit(data, 'borrador'))}
-                className="px-4 py-2.5 text-[13.5px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas transition-colors duration-150 disabled:opacity-60"
-              >
-                Guardar borrador
-              </button>
-            </div>
-          </form>
-
-          <div className="space-y-4">
-            <div className="bg-primary-tint rounded-card p-5">
-              <p className="text-[11px] font-semibold text-primary uppercase tracking-[0.08em] mb-1.5">
-                Enlace público
-              </p>
-              <p className="text-[13px] text-primary">
-                Al publicar, se generará la ruta <span className="font-mono">/inscribirse/[eventoId]</span> para
-                compartir con los inscritos.
-              </p>
-            </div>
-            <div className="bg-surface rounded-card border border-border shadow-card p-5">
-              <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-1.5">
-                Validaciones
-              </p>
-              <ul className="text-[13px] text-ink-muted space-y-1.5 list-disc pl-4">
-                <li>El cupo máximo se valida en cada inscripción.</li>
-                <li>No se permite inscribir dos veces la misma cédula.</li>
-                <li>Solo tú y los coordinadores asignados pueden ver este evento.</li>
-              </ul>
-            </div>
+          <div className="hidden lg:flex items-center gap-2.5">
+            <Button loading={submitting} onClick={handleSubmit((data) => onSubmit(data, 'publicado'))}>
+              Publicar y generar enlace
+            </Button>
+            <Button variant="secondary" disabled={submitting} onClick={handleSubmit((data) => onSubmit(data, 'borrador'))}>
+              Guardar borrador
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+
+        <aside className="space-y-4 lg:sticky lg:top-[88px]">
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Link2 className="w-4 h-4 text-primary" strokeWidth={1.8} />
+              <Eyebrow className="text-primary">Enlace público</Eyebrow>
+            </div>
+            <p className="text-[13px] text-ink-muted">
+              Al publicar se genera <span className="font-mono text-ink">/inscribirse/…</span> para compartir por WhatsApp o redes.
+            </p>
+          </Card>
+          <Card className="p-5">
+            <Eyebrow className="mb-3">Cómo funciona</Eyebrow>
+            <ul className="space-y-3 text-[13px] text-ink-muted">
+              <li className="flex gap-2.5">
+                <Users className="w-4 h-4 text-ink-faint flex-shrink-0 mt-0.5" strokeWidth={1.8} />
+                El cupo se controla por fecha en cada inscripción.
+              </li>
+              <li className="flex gap-2.5">
+                <Check className="w-4 h-4 text-ink-faint flex-shrink-0 mt-0.5" strokeWidth={1.8} />
+                Una misma cédula no se puede inscribir dos veces en la misma fecha.
+              </li>
+              <li className="flex gap-2.5">
+                <Lock className="w-4 h-4 text-ink-faint flex-shrink-0 mt-0.5" strokeWidth={1.8} />
+                Solo tú y los coordinadores asignados pueden ver el evento.
+              </li>
+            </ul>
+          </Card>
+        </aside>
+      </div>
+
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-20 border-t border-border bg-white/[0.92] backdrop-blur-md px-4 py-3 flex gap-2">
+        <Button variant="secondary" className="flex-1" disabled={submitting} onClick={handleSubmit((data) => onSubmit(data, 'borrador'))}>
+          Borrador
+        </Button>
+        <Button className="flex-[2]" loading={submitting} onClick={handleSubmit((data) => onSubmit(data, 'publicado'))}>
+          Publicar
+        </Button>
+      </div>
     </div>
   )
 }

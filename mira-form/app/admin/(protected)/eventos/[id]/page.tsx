@@ -2,22 +2,44 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import {
-  ArrowLeft,
-  ExternalLink,
-  Copy,
+  CalendarDays,
   Check,
-  Search,
+  ClipboardList,
+  Copy,
   Download,
+  ExternalLink,
+  LayoutGrid,
+  ListChecks,
+  MapPin,
+  Package,
   Plus,
   Trash2,
-  Package,
-  ListChecks,
+  UserCog,
   Users,
 } from 'lucide-react'
-import { getInitials } from '@/lib/initials'
+import {
+  Avatar,
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  Eyebrow,
+  IconButton,
+  Input,
+  ResponsiveTable,
+  SearchInput,
+  Skeleton,
+  Tabs,
+  useConfirm,
+  type BadgeTone,
+  type Column,
+} from '@/components/admin/ui'
+import { cn } from '@/lib/cn'
+import { EventEstadoBadge, formatEventDate as formatDate } from '../_shared'
 
 type Tab = 'resumen' | 'inscripciones' | 'inventario' | 'tareas' | 'coordinadores'
 
@@ -79,14 +101,10 @@ interface TaskRow {
   completada: boolean
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-const ESTADO_BADGE: Record<RegistrationRow['estado'], string> = {
-  confirmado: 'bg-success-tint text-success',
-  pendiente: 'bg-warning-tint text-warning',
-  cancelado: 'bg-danger-tint text-danger',
+const REGISTRATION_TONE: Record<RegistrationRow['estado'], { tone: BadgeTone; label: string }> = {
+  confirmado: { tone: 'success', label: 'Confirmado' },
+  pendiente: { tone: 'warning', label: 'Pendiente' },
+  cancelado: { tone: 'danger', label: 'Cancelado' },
 }
 
 const INVENTORY_NEXT: Record<InventoryRow['estado'], InventoryRow['estado']> = {
@@ -95,15 +113,32 @@ const INVENTORY_NEXT: Record<InventoryRow['estado'], InventoryRow['estado']> = {
   conseguido: 'pendiente',
 }
 
-const INVENTORY_BADGE: Record<InventoryRow['estado'], { cls: string; label: string }> = {
-  pendiente: { cls: 'bg-warning-tint text-warning', label: 'Pendiente' },
-  comprado: { cls: 'bg-primary-tint text-primary', label: 'Comprado' },
-  conseguido: { cls: 'bg-success-tint text-success', label: 'Conseguido' },
+const INVENTORY_TONE: Record<InventoryRow['estado'], { tone: BadgeTone; label: string }> = {
+  pendiente: { tone: 'warning', label: 'Pendiente' },
+  comprado: { tone: 'primary', label: 'Comprado' },
+  conseguido: { tone: 'success', label: 'Conseguido' },
+}
+
+function RegistrationBadge({ estado }: { estado: RegistrationRow['estado'] }) {
+  const s = REGISTRATION_TONE[estado]
+  return <Badge tone={s.tone}>{s.label}</Badge>
+}
+
+function ProgressBar({ value, tone = 'primary' }: { value: number; tone?: 'primary' | 'success' | 'danger' }) {
+  return (
+    <div className="h-1.5 bg-canvas rounded-full overflow-hidden">
+      <div
+        className={cn('progress-fill h-full w-full rounded-full', tone === 'success' ? 'bg-success' : tone === 'danger' ? 'bg-danger' : 'bg-primary')}
+        style={{ transform: `scaleX(${Math.max(0, Math.min(value, 1))})` }}
+      />
+    </div>
+  )
 }
 
 export default function EventoDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const confirm = useConfirm()
   const id = params.id
 
   const [role, setRole] = useState<'admin' | 'coordinador'>('coordinador')
@@ -116,10 +151,7 @@ export default function EventoDetailPage() {
 
   const fetchEvent = useCallback(async () => {
     const res = await fetch(`/api/events/${id}`)
-    if (res.ok) {
-      const json = (await res.json()) as { data: EventDetail }
-      setEvent(json.data)
-    }
+    if (res.ok) setEvent(((await res.json()) as { data: EventDetail }).data)
   }, [id])
 
   useEffect(() => {
@@ -127,10 +159,7 @@ export default function EventoDetailPage() {
       setLoading(true)
       try {
         const meRes = await fetch('/api/auth/me')
-        if (meRes.ok) {
-          const me = await meRes.json()
-          setRole(me.role || 'coordinador')
-        }
+        if (meRes.ok) setRole((await meRes.json()).role || 'coordinador')
         await fetchEvent()
       } finally {
         setLoading(false)
@@ -146,9 +175,18 @@ export default function EventoDetailPage() {
   }
 
   async function handleDeleteEvent() {
-    if (!window.confirm('¿Eliminar este evento? Se borrarán también sus inscripciones, inventario y tareas. Esta acción no se puede deshacer.')) {
-      return
-    }
+    if (!event) return
+    const ok = await confirm({
+      title: 'Eliminar evento',
+      description: (
+        <>
+          Se eliminará <span className="font-medium text-ink">{event.nombre}</span> junto con sus inscripciones, inventario y tareas. Esta acción no se
+          puede deshacer.
+        </>
+      ),
+      confirmLabel: 'Eliminar evento',
+    })
+    if (!ok) return
     const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Evento eliminado')
@@ -159,111 +197,121 @@ export default function EventoDetailPage() {
   }
 
   if (loading) {
-    return <div className="admin-view py-16 text-center text-ink-muted text-sm">Cargando evento...</div>
+    return (
+      <div className="admin-view space-y-4">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-7 w-72" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+        <Skeleton className="h-9 w-full max-w-lg mt-6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-card" />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (!event) {
-    return <div className="admin-view py-16 text-center text-ink-muted text-sm">Evento no encontrado o sin acceso.</div>
+    return (
+      <Card className="admin-view">
+        <EmptyState icon={CalendarDays} title="Evento no encontrado" description="El evento no existe o no tienes acceso a él." />
+      </Card>
+    )
   }
-
-  const tabs: { key: Tab; label: string; icon: typeof Package }[] = [
-    { key: 'resumen', label: 'Resumen', icon: ListChecks },
-    { key: 'inscripciones', label: 'Inscripciones', icon: Users },
-    { key: 'inventario', label: 'Inventario', icon: Package },
-    { key: 'tareas', label: 'Tareas', icon: ListChecks },
-    { key: 'coordinadores', label: 'Coordinadores', icon: Users },
-  ]
 
   return (
     <div className="admin-view">
-      <Link
-        href="/admin/eventos"
-        className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-primary transition-transform duration-150 hover:-translate-x-0.5 mb-3"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-        Volver a eventos
-      </Link>
+      <BackLink href="/admin/eventos">Volver a eventos</BackLink>
 
-      <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
-        <div>
-          <h2 className="text-[19px] font-semibold text-ink mb-1">{event.nombre}</h2>
-          <p className="text-[13px] text-ink-muted font-mono">
-            {event.fechas.map((f) => formatDate(f)).join(' · ')} · {event.lugar}
-            {event.capacidadMaxima ? ` · cupo ${event.capacidadMaxima} por fecha` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-tint text-success text-[11.5px] font-medium">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-50 animate-ping" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-            </span>
-            En vivo · actualiza cada 20 s
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap mb-2">
+            <h2 className="text-[20px] md:text-[22px] font-semibold text-ink leading-tight tracking-[-0.01em]">{event.nombre}</h2>
+            <EventEstadoBadge estado={event.estado} />
           </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" strokeWidth={1.8} />
+              {event.lugar}
+            </span>
+            {event.capacidadMaxima && (
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" strokeWidth={1.8} />
+                Cupo {event.capacidadMaxima} por fecha
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {event.fechas.map((f) => (
+              <span key={f} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-white border border-border text-[12px] text-ink tabular-nums">
+                <CalendarDays className="w-3.5 h-3.5 text-primary" strokeWidth={1.8} />
+                {formatDate(f, true)}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
           <a
             href={`/inscribirse/${id}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas transition-colors duration-150"
+            className="press inline-flex items-center gap-2 h-10 px-4 text-[13.5px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
           >
-            <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.8} />
+            <ExternalLink className="w-4 h-4" strokeWidth={1.8} />
             Ver formulario
           </a>
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-white btn-primary-3d rounded-field"
-          >
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copiado' : 'Copiar enlace'}
-          </button>
-          <button
-            onClick={() => void handleDeleteEvent()}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-danger border border-border-input rounded-field bg-white hover:bg-danger-tint transition-colors duration-150"
-          >
-            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
-            Eliminar evento
-          </button>
+          <Button onClick={handleCopy} icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" strokeWidth={1.8} />}>
+            {copied ? 'Enlace copiado' : 'Copiar enlace'}
+          </Button>
+          <IconButton label="Eliminar evento" tone="danger" className="w-10 h-10 border border-border-input bg-white" onClick={() => void handleDeleteEvent()}>
+            <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+          </IconButton>
         </div>
       </div>
 
-      <div className="flex items-center gap-5 border-b border-border mb-6">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={
-              'relative pb-3 text-[13.5px] font-medium transition-colors duration-150 ' +
-              (tab === t.key ? 'text-primary' : 'text-ink-muted hover:text-ink')
-            }
-          >
-            {t.label}
-            {tab === t.key && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-primary rounded-full" />}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        className="mb-5 md:mb-6"
+        tabs={[
+          { value: 'resumen', label: 'Resumen', icon: LayoutGrid },
+          { value: 'inscripciones', label: 'Inscripciones', icon: Users },
+          { value: 'inventario', label: 'Inventario', icon: Package },
+          { value: 'tareas', label: 'Tareas', icon: ListChecks },
+          { value: 'coordinadores', label: 'Coordinadores', icon: UserCog },
+        ]}
+      />
 
-      {tab === 'resumen' && <ResumenTab id={id} event={event} publicUrl={publicUrl} />}
-      {tab === 'inscripciones' && <InscripcionesTab id={id} />}
-      {tab === 'inventario' && <InventarioTab id={id} />}
-      {tab === 'tareas' && <TareasTab id={id} />}
-      {tab === 'coordinadores' && (
-        <CoordinadoresTab id={id} role={role} event={event} onUpdated={fetchEvent} />
-      )}
+      <div key={tab} className="lesson-fade">
+        {tab === 'resumen' && <ResumenTab id={id} event={event} publicUrl={publicUrl} onSeeAll={() => setTab('inscripciones')} />}
+        {tab === 'inscripciones' && <InscripcionesTab id={id} />}
+        {tab === 'inventario' && <InventarioTab id={id} />}
+        {tab === 'tareas' && <TareasTab id={id} />}
+        {tab === 'coordinadores' && <CoordinadoresTab id={id} role={role} event={event} onUpdated={fetchEvent} />}
+      </div>
     </div>
   )
 }
 
 // ─── Resumen ────────────────────────────────────────────────────────────────
 
-function ResumenTab({ id, event, publicUrl }: { id: string; event: EventDetail; publicUrl: string }) {
+function StatCard({ label, value, children }: { label: string; value: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <Card interactive className="p-5">
+      <Eyebrow className="mb-2.5">{label}</Eyebrow>
+      <p className="text-[32px] font-semibold tabular-nums text-ink leading-none tracking-[-0.03em] mb-2.5">{value}</p>
+      {children}
+    </Card>
+  )
+}
+
+function ResumenTab({ id, event, publicUrl, onSeeAll }: { id: string; event: EventDetail; publicUrl: string; onSeeAll: () => void }) {
   const [summary, setSummary] = useState<Summary | null>(null)
 
   const fetchSummary = useCallback(async () => {
     const res = await fetch(`/api/events/${id}/summary`)
-    if (res.ok) {
-      const json = (await res.json()) as { data: Summary }
-      setSummary(json.data)
-    }
+    if (res.ok) setSummary(((await res.json()) as { data: Summary }).data)
   }, [id])
 
   useEffect(() => {
@@ -272,98 +320,122 @@ function ResumenTab({ id, event, publicUrl }: { id: string; event: EventDetail; 
     return () => clearInterval(interval)
   }, [fetchSummary])
 
-  if (!summary) return <div className="text-sm text-ink-muted">Cargando resumen...</div>
+  if (!summary) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-card" />
+        ))}
+      </div>
+    )
+  }
 
-  const cupoPct =
-    summary.capacidadMaxima && summary.capacidadMaxima > 0
-      ? Math.min(100, Math.round((summary.inscritos / summary.capacidadMaxima) * 100))
-      : null
+  const cupo = summary.capacidadMaxima ? summary.inscritos / summary.capacidadMaxima : null
 
   return (
-    <div className="grid grid-cols-[1fr_1fr_1fr_320px] gap-5 kpi-perspective">
-      <div className="kpi-card col-span-1 bg-surface rounded-card border border-border shadow-card p-5">
-        <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Inscritos</p>
-        <p className="text-[34px] font-semibold font-mono text-primary leading-none mb-2">{summary.inscritos}</p>
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-[1fr_1fr_1fr_300px] gap-4 md:gap-5">
+      <StatCard label="Inscritos" value={<span className="text-primary">{summary.inscritos}</span>}>
         {summary.capacidadMaxima ? (
           <>
             <p className="text-[12.5px] text-ink-muted mb-2">
               de {summary.capacidadMaxima} cupos · quedan {summary.cuposDisponibles}
             </p>
-            <div className="h-1.5 bg-canvas rounded-full overflow-hidden">
-              <div
-                className="chart-bar h-full bg-primary rounded-full"
-                style={{ width: `${cupoPct}%`, transformOrigin: 'left' }}
-              />
-            </div>
+            <ProgressBar value={cupo ?? 0} tone={cupo !== null && cupo >= 1 ? 'danger' : 'primary'} />
           </>
         ) : (
-          <p className="text-[12.5px] text-ink-muted">Cupo ilimitado</p>
+          <p className="text-[12.5px] text-ink-muted">Sin límite de cupo</p>
         )}
-      </div>
+      </StatCard>
 
-      <div className="kpi-card col-span-1 bg-surface rounded-card border border-border shadow-card p-5">
-        <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Inventario</p>
-        <p className="text-[34px] font-semibold font-mono text-ink leading-none mb-2">{summary.inventario.porcentaje}%</p>
-        <p className="text-[12.5px] text-ink-muted">
-          {summary.inventario.conseguidos} / {summary.inventario.total} ítems listos
+      <StatCard label="Inventario" value={`${summary.inventario.porcentaje}%`}>
+        <p className="text-[12.5px] text-ink-muted mb-2">
+          {summary.inventario.conseguidos} de {summary.inventario.total} ítems listos
         </p>
-      </div>
+        <ProgressBar value={summary.inventario.porcentaje / 100} tone={summary.inventario.porcentaje === 100 ? 'success' : 'primary'} />
+      </StatCard>
 
-      <div className="kpi-card col-span-1 bg-surface rounded-card border border-border shadow-card p-5">
-        <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Tareas</p>
-        <p className="text-[34px] font-semibold font-mono text-ink leading-none mb-2">
-          {summary.tareas.completadas}/{summary.tareas.total}
-        </p>
-        <p className="text-[12.5px] text-ink-muted">completadas</p>
-      </div>
+      <StatCard label="Tareas" value={`${summary.tareas.completadas}/${summary.tareas.total}`}>
+        <p className="text-[12.5px] text-ink-muted mb-2">completadas</p>
+        <ProgressBar
+          value={summary.tareas.total ? summary.tareas.completadas / summary.tareas.total : 0}
+          tone={summary.tareas.total > 0 && summary.tareas.completadas === summary.tareas.total ? 'success' : 'primary'}
+        />
+      </StatCard>
 
-      <div className="space-y-3">
-        <div className="bg-primary-tint rounded-card p-4">
-          <p className="text-[11px] font-semibold text-primary uppercase tracking-[0.08em] mb-1.5">Enlace de inscripción</p>
-          <p className="font-mono text-[11.5px] text-primary truncate">{publicUrl}</p>
-        </div>
-        <div className="bg-surface rounded-card border border-border shadow-card p-4">
-          <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Coordinadores</p>
+      <div className="space-y-4 md:col-span-3 xl:col-span-1 xl:row-span-2 grid md:grid-cols-2 xl:grid-cols-1 gap-4 md:space-y-0 xl:content-start">
+        <Card className="p-4">
+          <Eyebrow className="mb-2">Enlace de inscripción</Eyebrow>
+          <p className="font-mono text-[11.5px] text-primary bg-primary-tint rounded-[8px] px-2.5 py-2 truncate">{publicUrl}</p>
+          <p className="flex items-center gap-1.5 text-[11.5px] text-ink-faint mt-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
+            Datos en vivo · se actualizan cada 20 s
+          </p>
+        </Card>
+        <Card className="p-4">
+          <Eyebrow className="mb-2.5">Coordinadores</Eyebrow>
           {event.coordinadoresAsignados.length === 0 ? (
             <p className="text-[12.5px] text-ink-faint">Sin coordinadores asignados</p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-2">
               {event.coordinadoresAsignados.map((c) => (
-                <span key={c._id} className="text-[12px] px-2 py-1 rounded-full bg-canvas text-ink-muted">
-                  {c.nombre}
-                </span>
+                <div key={c._id} className="flex items-center gap-2">
+                  <Avatar name={c.nombre} email={c.email} size="xs" />
+                  <span className="text-[13px] text-ink truncate">{c.nombre}</span>
+                </div>
               ))}
             </div>
           )}
-          <p className="text-[11.5px] text-ink-faint mt-3">Esta información es interna y no se comparte públicamente.</p>
-        </div>
+        </Card>
       </div>
 
-      <div className="col-span-3 bg-surface rounded-card border border-border shadow-card overflow-hidden">
-        <div className="px-[22px] py-3.5 border-b border-border">
-          <p className="text-[13px] font-semibold text-ink">Últimas inscripciones</p>
-        </div>
+      <Card className="md:col-span-3 overflow-hidden">
+        <CardHeader
+          title="Últimas inscripciones"
+          actions={
+            summary.ultimasInscripciones.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={onSeeAll}>
+                Ver todas
+              </Button>
+            )
+          }
+        />
         {summary.ultimasInscripciones.length === 0 ? (
-          <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">Aún no hay inscripciones</p>
+          <EmptyState icon={Users} title="Aún no hay inscripciones" description="Comparte el enlace para empezar a recibir inscritos." className="py-10" />
         ) : (
-          summary.ultimasInscripciones.map((r) => (
-            <div key={r._id} className="table-row-3d flex items-center justify-between px-[22px] py-3 border-b border-border last:border-b-0">
-              <div>
-                <p className="text-[13.5px] text-ink">{r.nombreCompleto}</p>
-                <p className="font-mono text-[12px] text-ink-muted">{r.cedula}</p>
+          <div className="divide-y divide-[#F1F2F5]">
+            {summary.ultimasInscripciones.map((r) => (
+              <div key={r._id} className="flex items-center gap-3 px-5 py-3">
+                <Avatar name={r.nombreCompleto} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13.5px] text-ink truncate">{r.nombreCompleto}</p>
+                  <p className="font-mono text-[12px] text-ink-muted">{r.cedula}</p>
+                </div>
+                <RegistrationBadge estado={r.estado} />
               </div>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ESTADO_BADGE[r.estado]}`}>
-                {r.estado}
-              </span>
-            </div>
-          ))
+            ))}
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
 
 // ─── Inscripciones ──────────────────────────────────────────────────────────
+
+const REGISTRATION_COLUMNS: Column<RegistrationRow>[] = [
+  { header: 'Nombre', cell: (r) => <span className="font-medium text-ink">{r.nombreCompleto}</span> },
+  { header: 'Cédula', cell: (r) => <span className="font-mono text-[12.5px] text-ink-muted">{r.cedula}</span> },
+  { header: 'Contacto', cell: (r) => (
+      <div className="leading-tight">
+        <p className="font-mono text-[12.5px] text-ink">{r.telefono}</p>
+        {r.correo && <p className="text-[12px] text-ink-muted truncate max-w-[200px]">{r.correo}</p>}
+      </div>
+    ) },
+  { header: 'Municipio', cell: (r) => <span className="text-ink-muted">{r.municipio}</span> },
+  { header: 'Fecha', cell: (r) => <span className="tabular-nums text-ink-muted whitespace-nowrap">{formatDate(r.fecha)}</span> },
+  { header: 'Edad', cell: (r) => <span className="tabular-nums text-ink-muted">{r.edad ?? '—'}</span> },
+  { header: 'Estado', cell: (r) => <RegistrationBadge estado={r.estado} /> },
+]
 
 function InscripcionesTab({ id }: { id: string }) {
   const [rows, setRows] = useState<RegistrationRow[]>([])
@@ -377,10 +449,7 @@ function InscripcionesTab({ id }: { id: string }) {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     const res = await fetch(`/api/events/${id}/registrations?${params.toString()}`)
-    if (res.ok) {
-      const json = (await res.json()) as { data: RegistrationRow[] }
-      setRows(json.data)
-    }
+    if (res.ok) setRows(((await res.json()) as { data: RegistrationRow[] }).data)
     setLoading(false)
   }, [id, q])
 
@@ -418,69 +487,39 @@ function InscripcionesTab({ id }: { id: string }) {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint pointer-events-none" strokeWidth={1.8} />
-          <input
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Buscar por cédula o nombre..."
-            className="w-full pl-10 pr-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-          />
-        </div>
-        <p className="text-[13px] text-ink-muted flex-shrink-0">{rows.length} registros</p>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas transition-colors duration-150 flex-shrink-0"
-        >
-          <Download className="w-4 h-4" strokeWidth={1.8} />
+    <Card className="overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 md:p-4 border-b border-border">
+        <SearchInput value={searchInput} onChange={(e) => handleSearchChange(e.target.value)} placeholder="Buscar por cédula o nombre…" className="flex-1 sm:max-w-sm" />
+        <p className="text-[12.5px] text-ink-muted sm:ml-auto">
+          {rows.length} inscrito{rows.length === 1 ? '' : 's'}
+        </p>
+        <Button variant="secondary" disabled={rows.length === 0} icon={<Download className="w-4 h-4" strokeWidth={1.8} />} onClick={handleExport}>
           Exportar CSV
-        </button>
+        </Button>
       </div>
-
-      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden overflow-x-auto">
-        <table className="w-full text-[13.5px]">
-          <thead>
-            <tr className="bg-[#FAFBFC] border-b border-border">
-              {['Cédula', 'Nombre', 'Teléfono', 'Correo', 'Municipio', 'Fecha', 'Edad', 'Estado'].map((h) => (
-                <th key={h} className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#F1F2F5]">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-[22px] py-8 text-center text-ink-muted">Cargando...</td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-[22px] py-8 text-center text-ink-muted">No hay inscripciones</td>
-              </tr>
-            ) : (
-              rows.map((r) => (
-                <tr key={r._id} className="table-row-3d">
-                  <td className="px-[22px] py-[14px] font-mono text-[12.5px] text-ink">{r.cedula}</td>
-                  <td className="px-[22px] py-[14px] text-ink">{r.nombreCompleto}</td>
-                  <td className="px-[22px] py-[14px] font-mono text-[12.5px] text-ink">{r.telefono}</td>
-                  <td className="px-[22px] py-[14px] text-ink-muted">{r.correo ?? '—'}</td>
-                  <td className="px-[22px] py-[14px] text-ink-muted">{r.municipio}</td>
-                  <td className="px-[22px] py-[14px] font-mono text-[12.5px] text-ink-muted">{formatDate(r.fecha)}</td>
-                  <td className="px-[22px] py-[14px] font-mono text-ink-muted">{r.edad ?? '—'}</td>
-                  <td className="px-[22px] py-[14px]">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ESTADO_BADGE[r.estado]}`}>
-                      {r.estado}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <ResponsiveTable
+        rows={rows}
+        columns={REGISTRATION_COLUMNS}
+        rowKey={(r) => r._id}
+        loading={loading}
+        mobileCard={(r) => (
+          <div>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[14px] font-medium text-ink">{r.nombreCompleto}</p>
+              <RegistrationBadge estado={r.estado} />
+            </div>
+            <p className="text-[12px] text-ink-muted font-mono mt-0.5">
+              CC {r.cedula} · {r.telefono}
+            </p>
+            <p className="text-[12px] text-ink-faint mt-1">
+              {r.municipio} · {formatDate(r.fecha)}
+              {r.edad ? ` · ${r.edad} años` : ''}
+            </p>
+          </div>
+        )}
+        empty={<EmptyState icon={Users} title={q ? 'Nadie coincide con la búsqueda' : 'Aún no hay inscripciones'} />}
+      />
+    </Card>
   )
 }
 
@@ -492,13 +531,11 @@ function InventarioTab({ id }: { id: string }) {
   const [nombre, setNombre] = useState('')
   const [cantidad, setCantidad] = useState('')
   const [responsable, setResponsable] = useState('')
+  const [adding, setAdding] = useState(false)
 
   const fetchItems = useCallback(async () => {
     const res = await fetch(`/api/events/${id}/inventory`)
-    if (res.ok) {
-      const json = (await res.json()) as { data: InventoryRow[] }
-      setItems(json.data)
-    }
+    if (res.ok) setItems(((await res.json()) as { data: InventoryRow[] }).data)
     setLoading(false)
   }, [id])
 
@@ -506,13 +543,16 @@ function InventarioTab({ id }: { id: string }) {
     void fetchItems()
   }, [fetchItems])
 
-  async function handleAdd() {
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
     if (!nombre.trim()) return
+    setAdding(true)
     const res = await fetch(`/api/events/${id}/inventory`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre, cantidad: cantidad || undefined, responsable: responsable || undefined }),
     })
+    setAdding(false)
     if (res.ok) {
       setNombre('')
       setCantidad('')
@@ -550,12 +590,14 @@ function InventarioTab({ id }: { id: string }) {
     }
   }
 
-  async function handleDelete(itemId: string) {
-    const res = await fetch(`/api/events/${id}/inventory/${itemId}`, { method: 'DELETE' })
+  async function handleDelete(item: InventoryRow) {
+    setItems((prev) => prev.filter((i) => i._id !== item._id))
+    const res = await fetch(`/api/events/${id}/inventory/${item._id}`, { method: 'DELETE' })
     if (res.ok) {
-      setItems((prev) => prev.filter((i) => i._id !== itemId))
+      toast(`«${item.nombre}» eliminado`)
     } else {
       toast.error('No se pudo eliminar el ítem')
+      void fetchItems()
     }
   }
 
@@ -564,120 +606,109 @@ function InventarioTab({ id }: { id: string }) {
   const pct = total > 0 ? Math.round((listos / total) * 100) : 0
   const porConseguir = items.filter((i) => i.estado === 'pendiente')
 
-  return (
-    <div className="grid grid-cols-[1fr_280px] gap-5">
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre del ítem (ej. Cartulinas de colores)"
-            className="flex-1 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-          />
-          <input
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            placeholder="Cantidad (ej. 30 pliegos)"
-            className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-          />
-          <input
-            value={responsable}
-            onChange={(e) => setResponsable(e.target.value)}
-            placeholder="Responsable (nombre)"
-            className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-          />
-          <button onClick={handleAdd} className="flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium text-white btn-primary-3d rounded-field flex-shrink-0">
-            <Plus className="w-4 h-4" strokeWidth={1.8} />
-            Agregar
-          </button>
-        </div>
+  function renderEstado(item: InventoryRow) {
+    const s = INVENTORY_TONE[item.estado]
+    return (
+      <button type="button" onClick={() => void cycleEstado(item)} title="Cambiar estado" className="press rounded-full focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20">
+        <Badge tone={s.tone} dot>
+          {s.label}
+        </Badge>
+      </button>
+    )
+  }
 
-        <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
-          <table className="w-full text-[13.5px]">
-            <thead>
-              <tr className="bg-[#FAFBFC] border-b border-border">
-                {['Ítem', 'Cantidad', 'Responsable', 'Estado', ''].map((h) => (
-                  <th key={h} className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F1F2F5]">
-              {loading ? (
-                <tr><td colSpan={5} className="px-[22px] py-8 text-center text-ink-muted">Cargando...</td></tr>
-              ) : items.length === 0 ? (
-                <tr><td colSpan={5} className="px-[22px] py-8 text-center text-ink-muted">Sin ítems todavía</td></tr>
-              ) : (
-                items.map((item) => {
-                  const badge = INVENTORY_BADGE[item.estado]
-                  return (
-                    <tr key={item._id} className="table-row-3d">
-                      <td className="px-[22px] py-[14px] text-ink">{item.nombre}</td>
-                      <td className="px-[22px] py-[14px] text-ink-muted font-mono text-[12.5px]">{item.cantidad ?? '—'}</td>
-                      <td className="px-[22px] py-[14px]">
-                        <div className="flex items-center gap-1.5">
-                          {item.responsable && (
-                            <span className="w-5 h-5 rounded-full bg-primary-tint text-primary text-[9px] font-semibold flex items-center justify-center flex-shrink-0">
-                              {getInitials(item.responsable)}
-                            </span>
-                          )}
-                          <input
-                            defaultValue={item.responsable ?? ''}
-                            onBlur={(e) => {
-                              if (e.target.value !== (item.responsable ?? '')) {
-                                void handleUpdateResponsable(item._id, e.target.value)
-                              }
-                            }}
-                            placeholder="Sin asignar"
-                            className="w-full min-w-0 px-1.5 py-1 text-[13px] text-ink bg-transparent border border-transparent rounded-[6px] outline-none hover:border-border-input focus:border-primary focus:bg-white focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-[22px] py-[14px]">
-                        <button
-                          onClick={() => void cycleEstado(item)}
-                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-opacity duration-150 hover:opacity-80 ${badge.cls}`}
-                        >
-                          {badge.label}
-                        </button>
-                      </td>
-                      <td className="px-[22px] py-[14px]">
-                        <button onClick={() => void handleDelete(item._id)} className="text-ink-faint hover:text-danger transition-colors duration-150">
-                          <Trash2 className="w-4 h-4" strokeWidth={1.8} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  function renderResponsable(item: InventoryRow) {
+    return (
+      <input
+        key={`${item._id}-${item.responsable ?? ''}`}
+        defaultValue={item.responsable ?? ''}
+        onBlur={(e) => {
+          if (e.target.value !== (item.responsable ?? '')) void handleUpdateResponsable(item._id, e.target.value)
+        }}
+        placeholder="Sin asignar"
+        aria-label={`Responsable de ${item.nombre}`}
+        className="w-full min-w-0 h-8 px-2 text-[13px] text-ink bg-transparent border border-transparent rounded-[8px] outline-none hover:border-border-input focus:border-primary focus:bg-white focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+      />
+    )
+  }
+
+  const columns: Column<InventoryRow>[] = [
+    { header: 'Ítem', cell: (i) => <span className="font-medium text-ink">{i.nombre}</span> },
+    { header: 'Cantidad', cell: (i) => <span className="text-ink-muted">{i.cantidad ?? '—'}</span> },
+    { header: 'Responsable', className: 'w-[200px]', cell: (i) => renderResponsable(i) },
+    { header: 'Estado', cell: (i) => renderEstado(i) },
+    {
+      header: <span className="sr-only">Acciones</span>,
+      className: 'w-12 text-right',
+      cell: (i) => (
+        <IconButton label={`Eliminar ${i.nombre}`} tone="danger" onClick={() => void handleDelete(i)}>
+          <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+        </IconButton>
+      ),
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 md:gap-5 items-start">
+      <Card className="overflow-hidden min-w-0">
+        <form onSubmit={(e) => void handleAdd(e)} className="grid grid-cols-1 sm:grid-cols-[1fr_150px_170px_auto] gap-2 p-3 md:p-4 border-b border-border">
+          <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nuevo ítem (ej. Cartulinas)" aria-label="Nombre del ítem" />
+          <Input value={cantidad} onChange={(e) => setCantidad(e.target.value)} placeholder="Cantidad" aria-label="Cantidad" />
+          <Input value={responsable} onChange={(e) => setResponsable(e.target.value)} placeholder="Responsable" aria-label="Responsable" />
+          <Button type="submit" loading={adding} disabled={!nombre.trim()} icon={<Plus className="w-4 h-4" strokeWidth={1.8} />}>
+            Agregar
+          </Button>
+        </form>
+        <ResponsiveTable
+          rows={items}
+          columns={columns}
+          rowKey={(i) => i._id}
+          loading={loading}
+          mobileCard={(i) => (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-ink">{i.nombre}</p>
+                  {i.cantidad && <p className="text-[12px] text-ink-muted">{i.cantidad}</p>}
+                </div>
+                <IconButton label={`Eliminar ${i.nombre}`} tone="danger" onClick={() => void handleDelete(i)}>
+                  <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+                </IconButton>
+              </div>
+              <div className="flex items-center gap-2">
+                {renderEstado(i)}
+                <div className="flex-1 min-w-0">{renderResponsable(i)}</div>
+              </div>
+            </div>
+          )}
+          empty={<EmptyState icon={Package} title="Sin ítems todavía" description="Agrega lo que hace falta conseguir para el evento." className="py-10" />}
+        />
+      </Card>
 
       <div className="space-y-4">
-        <div className="bg-surface rounded-card border border-border shadow-card p-4">
-          <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Avance</p>
-          <p className="text-[26px] font-semibold font-mono text-ink mb-2">{pct}%</p>
-          <div className="h-1.5 bg-canvas rounded-full overflow-hidden">
-            <div className="bg-primary h-full rounded-full transition-[width] duration-[450ms]" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-        <div className="bg-surface rounded-card border border-border shadow-card p-4">
-          <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Por conseguir</p>
+        <Card className="p-4">
+          <Eyebrow className="mb-2">Avance</Eyebrow>
+          <p className="text-[26px] font-semibold tabular-nums text-ink leading-none mb-2.5">{pct}%</p>
+          <ProgressBar value={pct / 100} tone={pct === 100 && total > 0 ? 'success' : 'primary'} />
+          <p className="text-[12px] text-ink-muted mt-2">
+            {listos} de {total} listos
+          </p>
+        </Card>
+        <Card className="p-4">
+          <Eyebrow className="mb-2">Por conseguir</Eyebrow>
           {porConseguir.length === 0 ? (
-            <p className="text-[12.5px] text-ink-faint">Todo listo</p>
+            <p className="text-[12.5px] text-ink-faint">{total > 0 ? 'Todo listo' : 'Nada pendiente'}</p>
           ) : (
             <ul className="space-y-1.5">
               {porConseguir.map((i) => (
-                <li key={i._id} className="text-[13px] text-ink-muted">
+                <li key={i._id} className="flex items-center gap-2 text-[13px] text-ink-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
                   {i.nombre}
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )
@@ -690,13 +721,11 @@ function TareasTab({ id }: { id: string }) {
   const [loading, setLoading] = useState(true)
   const [titulo, setTitulo] = useState('')
   const [responsable, setResponsable] = useState('')
+  const [adding, setAdding] = useState(false)
 
   const fetchTasks = useCallback(async () => {
     const res = await fetch(`/api/events/${id}/tasks`)
-    if (res.ok) {
-      const json = (await res.json()) as { data: TaskRow[] }
-      setTasks(json.data)
-    }
+    if (res.ok) setTasks(((await res.json()) as { data: TaskRow[] }).data)
     setLoading(false)
   }, [id])
 
@@ -704,13 +733,16 @@ function TareasTab({ id }: { id: string }) {
     void fetchTasks()
   }, [fetchTasks])
 
-  async function handleAdd() {
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
     if (!titulo.trim()) return
+    setAdding(true)
     const res = await fetch(`/api/events/${id}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titulo, responsable: responsable || undefined }),
     })
+    setAdding(false)
     if (res.ok) {
       setTitulo('')
       setResponsable('')
@@ -733,89 +765,94 @@ function TareasTab({ id }: { id: string }) {
     }
   }
 
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-4">
-        <input
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          placeholder="Nueva tarea..."
-          className="flex-1 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-        />
-        <input
-          value={responsable}
-          onChange={(e) => setResponsable(e.target.value)}
-          placeholder="Responsable (nombre)"
-          className="w-44 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-        />
-        <button onClick={handleAdd} className="flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium text-white btn-primary-3d rounded-field flex-shrink-0">
-          <Plus className="w-4 h-4" strokeWidth={1.8} />
-          Agregar
-        </button>
-      </div>
+  const pendientes = tasks.filter((t) => !t.completada)
+  const hechas = tasks.filter((t) => t.completada)
 
-      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
-        {loading ? (
-          <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">Cargando...</p>
-        ) : tasks.length === 0 ? (
-          <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">Sin tareas todavía</p>
-        ) : (
-          tasks.map((task) => (
-            <div key={task._id} className="table-row-3d flex items-center gap-3 px-[22px] py-3.5 border-b border-border last:border-b-0">
-              <input
-                type="checkbox"
-                checked={task.completada}
-                onChange={() => void toggleCompletada(task)}
-                className="w-4 h-4 rounded border-border-input accent-primary flex-shrink-0"
-              />
-              <p className={'flex-1 text-[13.5px] ' + (task.completada ? 'line-through text-ink-faint' : 'text-ink')}>
-                {task.titulo}
-              </p>
-              {task.responsable && (
-                <span className="text-[12px] text-ink-muted flex-shrink-0">{task.responsable}</span>
-              )}
-              {task.fechaLimite && (
-                <span
-                  className={
-                    'text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ' +
-                    (task.completada ? 'bg-canvas text-ink-faint' : 'bg-warning-tint text-warning')
-                  }
-                >
-                  {formatDate(task.fechaLimite)}
-                </span>
-              )}
-            </div>
-          ))
+  function renderTask(task: TaskRow) {
+    return (
+      <div key={task._id} className="table-row-3d flex items-center gap-3 px-4 md:px-5 py-3">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={task.completada}
+          aria-label={task.completada ? `Marcar «${task.titulo}» como pendiente` : `Marcar «${task.titulo}» como hecha`}
+          onClick={() => void toggleCompletada(task)}
+          className={cn(
+            'press w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0',
+            'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20',
+            task.completada ? 'bg-success border-success text-white' : 'border-border-input hover:border-primary'
+          )}
+        >
+          {task.completada && <Check className="w-3 h-3" strokeWidth={3} />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className={cn('text-[13.5px]', task.completada ? 'line-through text-ink-faint' : 'text-ink')}>{task.titulo}</p>
+          {task.responsable && <p className="sm:hidden text-[12px] text-ink-muted mt-0.5">{task.responsable}</p>}
+        </div>
+        {task.responsable && (
+          <span className="hidden sm:flex items-center gap-1.5 text-[12px] text-ink-muted flex-shrink-0">
+            <Avatar name={task.responsable} size="xs" />
+            {task.responsable}
+          </span>
         )}
+        {task.fechaLimite && <Badge tone={task.completada ? 'neutral' : 'warning'}>{formatDate(task.fechaLimite)}</Badge>}
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <form onSubmit={(e) => void handleAdd(e)} className="grid grid-cols-1 sm:grid-cols-[1fr_200px_auto] gap-2 p-3 md:p-4 border-b border-border">
+        <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Nueva tarea…" aria-label="Nueva tarea" />
+        <Input value={responsable} onChange={(e) => setResponsable(e.target.value)} placeholder="Responsable" aria-label="Responsable" />
+        <Button type="submit" loading={adding} disabled={!titulo.trim()} icon={<Plus className="w-4 h-4" strokeWidth={1.8} />}>
+          Agregar
+        </Button>
+      </form>
+      {loading ? (
+        <div className="divide-y divide-[#F1F2F5]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+              <Skeleton className="w-5 h-5 rounded-full" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          ))}
+        </div>
+      ) : tasks.length === 0 ? (
+        <EmptyState icon={ClipboardList} title="Sin tareas todavía" description="Organiza quién hace qué antes del evento." className="py-10" />
+      ) : (
+        <>
+          <div className="divide-y divide-[#F1F2F5]">
+            {pendientes.map(renderTask)}
+          </div>
+          {hechas.length > 0 && (
+            <>
+              <p className="px-5 pt-4 pb-2 text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] border-t border-border bg-surface-muted">
+                Completadas · {hechas.length}
+              </p>
+              <div className="divide-y divide-[#F1F2F5] bg-surface-muted">
+                {hechas.map(renderTask)}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </Card>
   )
 }
 
 // ─── Coordinadores ──────────────────────────────────────────────────────────
 
-function CoordinadoresTab({
-  id,
-  role,
-  event,
-  onUpdated,
-}: {
-  id: string
-  role: 'admin' | 'coordinador'
-  event: EventDetail
-  onUpdated: () => void
-}) {
+function CoordinadoresTab({ id, role, event, onUpdated }: { id: string; role: 'admin' | 'coordinador'; event: EventDetail; onUpdated: () => void }) {
   const [allCoordinadores, setAllCoordinadores] = useState<UserLite[]>([])
   const [loading, setLoading] = useState(role === 'admin')
+  const [pendingId, setPendingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (role !== 'admin') return
     async function fetchUsers() {
       const res = await fetch('/api/admin/usuarios')
-      if (res.ok) {
-        const json = (await res.json()) as { data: UserLite[] }
-        setAllCoordinadores(json.data.filter((u) => u.role === 'coordinador'))
-      }
+      if (res.ok) setAllCoordinadores(((await res.json()) as { data: UserLite[] }).data.filter((u) => u.role === 'coordinador'))
       setLoading(false)
     }
     void fetchUsers()
@@ -827,82 +864,70 @@ function CoordinadoresTab({
     const nextIds = assigned
       ? event.coordinadoresAsignados.filter((c) => c._id !== userId).map((c) => c._id)
       : [...event.coordinadoresAsignados.map((c) => c._id), userId]
-
+    setPendingId(userId)
     const res = await fetch(`/api/events/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ coordinadoresAsignados: nextIds }),
     })
-    if (res.ok) {
-      onUpdated()
-    } else {
-      toast.error('No se pudo actualizar la asignación')
-    }
+    setPendingId(null)
+    if (res.ok) onUpdated()
+    else toast.error('No se pudo actualizar la asignación')
   }
 
-  if (role !== 'admin') {
-    return (
-      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
-        {event.coordinadoresAsignados.length === 0 ? (
-          <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">Sin coordinadores asignados</p>
-        ) : (
-          event.coordinadoresAsignados.map((c) => (
-            <div key={c._id} className="flex items-center justify-between px-[22px] py-3.5 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-primary-tint text-primary text-[11px] font-semibold flex items-center justify-center">
-                  {getInitials(c.nombre, c.email)}
-                </div>
-                <div>
-                  <p className="text-[13.5px] text-ink">{c.nombre}</p>
-                  <p className="text-[12px] text-ink-muted">{c.email}</p>
-                </div>
-              </div>
-              <button disabled title="Solo el superadministrador puede asignar coordinadores" className="text-[12.5px] text-ink-faint cursor-not-allowed">
-                Asignar / Retirar
-              </button>
-            </div>
-          ))
-        )}
-        <p className="px-[22px] py-3 text-[12px] text-ink-faint border-t border-border">
-          Solo el superadministrador puede asignar coordinadores.
-        </p>
-      </div>
-    )
-  }
+  const list = role === 'admin' ? allCoordinadores : event.coordinadoresAsignados
 
   return (
-    <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="Coordinadores del evento"
+        description={role === 'admin' ? 'Asigna quién puede ver y gestionar este evento.' : 'Solo un administrador puede cambiar la asignación.'}
+      />
       {loading ? (
-        <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">Cargando...</p>
-      ) : allCoordinadores.length === 0 ? (
-        <p className="px-[22px] py-8 text-center text-[13px] text-ink-muted">No hay coordinadores registrados</p>
-      ) : (
-        allCoordinadores.map((c) => {
-          const assigned = assignedIds.has(c._id)
-          return (
-            <div key={c._id} className="flex items-center justify-between px-[22px] py-3.5 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-primary-tint text-primary text-[11px] font-semibold flex items-center justify-center">
-                  {getInitials(c.nombre, c.email)}
-                </div>
-                <div>
-                  <p className="text-[13.5px] text-ink">{c.nombre}</p>
-                  <p className="text-[12px] text-ink-muted">{c.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => void toggleAsignacion(c._id, assigned)}
-                className={
-                  'text-[12.5px] font-medium px-3 py-1.5 rounded-field transition-colors duration-150 ' +
-                  (assigned ? 'text-danger border border-danger/30 hover:bg-danger-tint' : 'text-primary border border-primary/30 hover:bg-primary-tint')
-                }
-              >
-                {assigned ? 'Retirar' : 'Asignar'}
-              </button>
+        <div className="divide-y divide-[#F1F2F5]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="h-4 w-48" />
             </div>
-          )
-        })
+          ))}
+        </div>
+      ) : list.length === 0 ? (
+        <EmptyState
+          icon={UserCog}
+          title={role === 'admin' ? 'No hay coordinadores registrados' : 'Sin coordinadores asignados'}
+          description={role === 'admin' ? 'Créalos desde la sección Usuarios.' : undefined}
+          className="py-10"
+        />
+      ) : (
+        <div className="divide-y divide-[#F1F2F5]">
+          {list.map((c) => {
+            const assigned = assignedIds.has(c._id)
+            return (
+              <div key={c._id} className="flex items-center gap-3 px-4 md:px-5 py-3">
+                <Avatar name={c.nombre} email={c.email} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13.5px] font-medium text-ink truncate">{c.nombre}</p>
+                  <p className="text-[12px] text-ink-muted truncate">{c.email}</p>
+                </div>
+                {role === 'admin' ? (
+                  <Button
+                    size="sm"
+                    variant={assigned ? 'secondary' : 'primary'}
+                    loading={pendingId === c._id}
+                    className={assigned ? 'text-danger hover:bg-danger-tint' : undefined}
+                    onClick={() => void toggleAsignacion(c._id, assigned)}
+                  >
+                    {assigned ? 'Retirar' : 'Asignar'}
+                  </Button>
+                ) : (
+                  <Badge tone="primary">Asignado</Badge>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
-    </div>
+    </Card>
   )
 }
