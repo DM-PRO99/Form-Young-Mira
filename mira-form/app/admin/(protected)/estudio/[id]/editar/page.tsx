@@ -8,7 +8,6 @@ import { Reorder, useDragControls } from 'framer-motion'
 import { uploadPresigned } from '@vercel/blob/client'
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   Eye,
   FileText,
@@ -21,6 +20,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { formatBytes, lessonTypeFromFile, MAX_UPLOAD_BYTES } from '@/lib/estudio'
+import { BackLink, useConfirm } from '@/components/admin/ui'
 import { LESSON_LABEL, type CourseDetail, type Lesson, type LessonType, type Module } from '../../_types'
 
 const INPUT_CLASS =
@@ -85,10 +85,10 @@ function LessonRow({ lesson, index, total, onRename, onMove, onRemove }: LessonR
       </button>
       <Icon className="w-4 h-4 text-primary flex-shrink-0" strokeWidth={1.8} />
       <input value={lesson.titulo} onChange={(e) => onRename(e.target.value)} className={INLINE_INPUT_CLASS} />
-      <span className="text-[11.5px] text-ink-faint font-mono flex-shrink-0">
+      <span className="hidden sm:inline text-[11.5px] text-ink-faint font-mono flex-shrink-0">
         {LESSON_LABEL[lesson.tipo]} · {formatBytes(lesson.tamano)}
       </span>
-      <button type="button" aria-label="Subir" onClick={() => onMove(index - 1)} disabled={index === 0} className={ICON_BUTTON_CLASS}>
+      <button type="button" aria-label="Subir" onClick={() => onMove(index - 1)} disabled={index === 0} className={'hidden sm:inline-flex ' + ICON_BUTTON_CLASS}>
         <ArrowUp className="w-4 h-4" strokeWidth={1.8} />
       </button>
       <button
@@ -96,7 +96,7 @@ function LessonRow({ lesson, index, total, onRename, onMove, onRemove }: LessonR
         aria-label="Bajar"
         onClick={() => onMove(index + 1)}
         disabled={index === total - 1}
-        className={ICON_BUTTON_CLASS}
+        className={'hidden sm:inline-flex ' + ICON_BUTTON_CLASS}
       >
         <ArrowDown className="w-4 h-4" strokeWidth={1.8} />
       </button>
@@ -115,6 +115,7 @@ function LessonRow({ lesson, index, total, onRename, onMove, onRemove }: LessonR
 export default function EditarCursoPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const confirm = useConfirm()
   const id = params.id
 
   const [loading, setLoading] = useState(true)
@@ -330,9 +331,17 @@ export default function EditarCursoPage() {
   }
 
   async function handleDelete() {
-    if (!window.confirm('¿Eliminar este curso? Se borrarán todas sus lecciones, archivos y el progreso del equipo. Esta acción no se puede deshacer.')) {
-      return
-    }
+    const ok = await confirm({
+      title: 'Eliminar curso',
+      description: (
+        <>
+          Se eliminará <span className="font-medium text-ink">{titulo || 'este curso'}</span> con todas sus lecciones, sus archivos y el progreso del
+          equipo. Esta acción no se puede deshacer.
+        </>
+      ),
+      confirmLabel: 'Eliminar curso',
+    })
+    if (!ok) return
     const res = await fetch(`/api/estudio/cursos/${id}`, { method: 'DELETE' })
     if (res.ok) {
       setDirty(false)
@@ -347,7 +356,7 @@ export default function EditarCursoPage() {
     return (
       <div className="admin-view">
         <div className="h-9 w-full bg-zinc-100 rounded-field animate-pulse mb-5" />
-        <div className="grid grid-cols-[1fr_300px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
           <div className="space-y-5">
             <div className="h-[150px] bg-surface rounded-card border border-border animate-pulse" />
             <div className="h-[200px] bg-surface rounded-card border border-border animate-pulse" />
@@ -364,15 +373,9 @@ export default function EditarCursoPage() {
     <div className="admin-view">
       <input ref={fileInputRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={handleFileSelected} />
 
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <Link
-          href={`/admin/estudio/${id}`}
-          className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-primary transition-transform duration-150 hover:-translate-x-0.5"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-          Volver al curso
-        </Link>
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <BackLink href={`/admin/estudio/${id}`}>Volver al curso</BackLink>
+        <div className="flex flex-wrap items-center gap-2.5">
           {dirty && (
             <span className="flex items-center gap-1.5 text-[12.5px] text-warning mr-1">
               <span className="w-1.5 h-1.5 rounded-full bg-warning" />
@@ -404,8 +407,8 @@ export default function EditarCursoPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
-        <div className="space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 lg:gap-6 items-start">
+        <div className="space-y-5 min-w-0">
           <div className="bg-surface rounded-card border border-border shadow-card p-6 space-y-4">
             <div>
               <label className="block text-[13px] font-medium text-ink mb-1.5">Título del curso</label>
@@ -564,7 +567,7 @@ export default function EditarCursoPage() {
           </button>
         </div>
 
-        <div className="space-y-4 sticky top-[88px]">
+        <div className="space-y-4 lg:sticky lg:top-[88px]">
           <div className="bg-surface rounded-card border border-border shadow-card p-5">
             <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em] mb-2">Estado</p>
             <span

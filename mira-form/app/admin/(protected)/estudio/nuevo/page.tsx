@@ -2,12 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
-
-const INPUT_CLASS =
-  'w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150'
+import { ArrowRight } from 'lucide-react'
+import { BackLink, Button, Card, CardHeader, Field, Input, Textarea } from '@/components/admin/ui'
 
 export default function NuevoCursoPage() {
   const router = useRouter()
@@ -39,42 +36,23 @@ export default function NuevoCursoPage() {
 
   return (
     <div className="admin-view">
-      <Link
-        href="/admin/estudio"
-        className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-primary transition-transform duration-150 hover:-translate-x-0.5 mb-4"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-        Volver a estudio
-      </Link>
+      <BackLink href="/admin/estudio">Volver a estudio</BackLink>
 
-      <form onSubmit={handleSubmit} className="bg-surface rounded-card border border-border shadow-card p-7 max-w-xl space-y-5">
-        <div>
-          <label className="block text-[13px] font-medium text-ink mb-1.5">Título del curso</label>
-          <input
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            className={INPUT_CLASS}
-            placeholder="Ej. Liderazgo juvenil"
-          />
-        </div>
-        <div>
-          <label className="block text-[13px] font-medium text-ink mb-1.5">Descripción (opcional)</label>
-          <textarea
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            rows={3}
-            className={INPUT_CLASS + ' resize-none'}
-            placeholder="De qué trata el curso..."
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="btn-primary-3d px-4 py-2.5 text-[13.5px] text-white rounded-field font-medium disabled:opacity-60"
-        >
-          Crear y agregar contenido
-        </button>
-      </form>
+      <Card className="max-w-xl">
+        <CardHeader title="Nuevo curso" description="Después podrás agregar módulos y subir videos, PDFs y presentaciones." />
+        <form onSubmit={(e) => void handleSubmit(e)} className="p-5 md:p-6 space-y-5">
+          <Field label="Título del curso">
+            {(id) => <Input id={id} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Liderazgo juvenil" autoFocus />}
+          </Field>
+          <Field label="Descripción" hint="Opcional. Aparece en la tarjeta del curso.">
+            {(id) => <Textarea id={id} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="De qué trata el curso…" />}
+          </Field>
+          <Button type="submit" loading={submitting} className="w-full sm:w-auto">
+            Crear y agregar contenido
+            <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+          </Button>
+        </form>
+      </Card>
     </div>
   )
 }

@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
+import { BackLink } from '@/components/admin/ui'
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Circle,
@@ -151,13 +150,7 @@ export default function CursoPage() {
 
   return (
     <div className="admin-view">
-      <Link
-        href="/admin/estudio"
-        className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted hover:text-primary transition-transform duration-150 hover:-translate-x-0.5 mb-3"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.8} />
-        Volver a estudio
-      </Link>
+      <BackLink href="/admin/estudio">Volver a estudio</BackLink>
 
       <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
         <div className="flex items-start gap-3.5 min-w-0">
@@ -207,8 +200,8 @@ export default function CursoPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-[300px_1fr] gap-6 items-start">
-          <aside className="bg-surface rounded-card border border-border shadow-card p-3 sticky top-[88px] max-h-[calc(100vh-120px)] overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 lg:gap-6 items-start">
+          <aside className="order-2 lg:order-1 bg-surface rounded-card border border-border shadow-card p-3 lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto">
             {course.modulos.map((m, mi) => {
               const vistas = m.lecciones.filter((l) => completadas.has(l._id!)).length
               const moduloCompleto = m.lecciones.length > 0 && vistas === m.lecciones.length
@@ -267,7 +260,7 @@ export default function CursoPage() {
             })}
           </aside>
 
-          <div className="min-w-0">
+          <div className="order-1 lg:order-2 min-w-0">
             {allDone && (
               <CourseCompleted titulo={course.titulo} onRestart={() => lessons[0]?._id && setCurrentId(lessons[0]._id)} />
             )}
