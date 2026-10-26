@@ -44,6 +44,8 @@ import { EventEstadoBadge, formatEventDate as formatDate } from '../_shared'
 
 type Tab = 'resumen' | 'inscripciones' | 'inventario' | 'tareas' | 'coordinadores'
 
+const FECHAS_COLAPSADAS = 6
+
 interface UserLite {
   _id: string
   nombre: string
@@ -147,6 +149,19 @@ export default function EventoDetailPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('resumen')
   const [copied, setCopied] = useState(false)
+  const [verTodasFechas, setVerTodasFechas] = useState(false)
+
+  // Con una serie larga se muestran primero las próximas; "Ver todas" despliega también las pasadas.
+  const fechasOrdenadas = useMemo(
+    () => [...(event?.fechas ?? [])].sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
+    [event]
+  )
+  const fechasVisibles = useMemo(() => {
+    if (verTodasFechas || fechasOrdenadas.length <= FECHAS_COLAPSADAS) return fechasOrdenadas
+    const now = Date.now()
+    const proximas = fechasOrdenadas.filter((f) => new Date(f).getTime() >= now)
+    return (proximas.length ? proximas : fechasOrdenadas.slice(-1)).slice(0, FECHAS_COLAPSADAS)
+  }, [fechasOrdenadas, verTodasFechas])
 
   const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/inscribirse/${id}` : ''
 
@@ -244,12 +259,27 @@ export default function EventoDetailPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2.5">
-            {event.fechas.map((f) => (
-              <span key={f} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-white border border-border text-[12px] text-ink tabular-nums">
-                <CalendarDays className="w-3.5 h-3.5 text-primary" strokeWidth={1.8} />
-                {formatDate(f, true)}
-              </span>
-            ))}
+            {fechasVisibles.map((f) => {
+              const pasada = new Date(f).getTime() < Date.now()
+              return (
+                <span
+                  key={f}
+                  title={pasada ? 'Fecha pasada' : undefined}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border text-[12px] tabular-nums',
+                    pasada ? 'bg-canvas border-transparent text-ink-faint line-through' : 'bg-white border-border text-ink'
+                  )}
+                >
+                  <CalendarDays className={cn('w-3.5 h-3.5', pasada ? 'text-ink-faint' : 'text-primary')} strokeWidth={1.8} />
+                  {formatDate(f, true)}
+                </span>
+              )
+            })}
+            {fechasOrdenadas.length > FECHAS_COLAPSADAS && (
+              <button type="button" onClick={() => setVerTodasFechas((v) => !v)} className="h-7 px-2.5 text-[12px] font-semibold text-primary hover:underline">
+                {verTodasFechas ? 'Ver solo las próximas' : `Ver todas (${fechasOrdenadas.length})`}
+              </button>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">

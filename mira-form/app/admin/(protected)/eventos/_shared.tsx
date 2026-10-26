@@ -17,6 +17,25 @@ export function EventEstadoBadge({ estado }: { estado: EventEstado }) {
   )
 }
 
+export interface ResumenFechas {
+  proxima: string
+  futuras: number
+  total: number
+  finalizado: boolean
+}
+
+// Para eventos que se repiten: la fecha a mostrar es la próxima; si todas pasaron, la última.
+export function resumenFechas(fechas: string[], now = Date.now()): ResumenFechas {
+  const ordenadas = [...fechas].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+  const futuras = ordenadas.filter((f) => new Date(f).getTime() >= now)
+  return {
+    proxima: futuras[0] ?? ordenadas[ordenadas.length - 1],
+    futuras: futuras.length,
+    total: ordenadas.length,
+    finalizado: ordenadas.length > 0 && futuras.length === 0,
+  }
+}
+
 export function formatEventDate(iso: string, withTime = false): string {
   return new Date(iso).toLocaleDateString('es-CO', {
     day: '2-digit',

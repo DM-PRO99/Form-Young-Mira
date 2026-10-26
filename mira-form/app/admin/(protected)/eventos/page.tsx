@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CalendarClock, CalendarDays, ChevronRight, MapPin, Plus, Send, Trash2, Users } from 'lucide-react'
+import { CalendarClock, CalendarDays, ChevronRight, MapPin, Plus, Repeat, Send, Trash2, Users } from 'lucide-react'
 import {
   Avatar,
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -18,7 +19,7 @@ import {
   Skeleton,
   useConfirm,
 } from '@/components/admin/ui'
-import { DateTile, EventEstadoBadge, formatEventDate, type EventEstado } from './_shared'
+import { DateTile, EventEstadoBadge, formatEventDate, resumenFechas, type EventEstado } from './_shared'
 
 interface Coordinador {
   _id: string
@@ -141,7 +142,15 @@ export default function EventosPage() {
 
   const hasFilters = Boolean(q || estado)
   const now = Date.now()
-  const proximos = events.filter((e) => e.fechas.some((f) => new Date(f).getTime() >= now)).length
+  // Primero los eventos con fechas por venir (el más cercano arriba); luego los finalizados, del más reciente al más antiguo.
+  const ordenados = events
+    .map((event) => ({ event, fechas: resumenFechas(event.fechas, now) }))
+    .sort((a, b) => {
+      if (a.fechas.finalizado !== b.fechas.finalizado) return a.fechas.finalizado ? 1 : -1
+      const diff = new Date(a.fechas.proxima).getTime() - new Date(b.fechas.proxima).getTime()
+      return a.fechas.finalizado ? -diff : diff
+    })
+  const proximos = ordenados.filter((o) => o.fechas.futuras > 0).length
   const totalInscritos = events.reduce((s, e) => s + e.inscritos, 0)
 
   return (
@@ -205,7 +214,7 @@ export default function EventosPage() {
           />
         ) : (
           <div className="divide-y divide-[#F1F2F5]">
-            {events.map((event, i) => (
+            {ordenados.map(({ event, fechas }, i) => (
               <div key={event._id} className="animate-riseIn first:rounded-t-card last:rounded-b-card" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
                 <div
                   role="link"
@@ -214,12 +223,24 @@ export default function EventosPage() {
                   onKeyDown={(e) => e.key === 'Enter' && router.push(`/admin/eventos/${event._id}`)}
                   className="table-row-3d group flex items-center gap-3 md:gap-4 p-4 cursor-pointer focus-visible:outline-none focus-visible:bg-[#F7F9FF]"
                 >
-                  <DateTile iso={event.fechas[0]} />
+                  <div className={fechas.finalizado ? 'opacity-50' : undefined}>
+                    <DateTile iso={fechas.proxima} />
+                  </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <p className="text-[14.5px] font-semibold text-ink truncate">{event.nombre}</p>
                       <EventEstadoBadge estado={event.estado} />
+                      {fechas.finalizado ? (
+                        <Badge tone="neutral">Finalizado</Badge>
+                      ) : (
+                        fechas.total > 1 && (
+                          <Badge tone="violet">
+                            <Repeat className="w-3 h-3" strokeWidth={2.2} />
+                            Se repite · {fechas.futuras} fecha{fechas.futuras === 1 ? '' : 's'}
+                          </Badge>
+                        )
+                      )}
                     </div>
                     <p className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-[12.5px] text-ink-muted">
                       <span className="flex items-center gap-1 min-w-0">
@@ -227,8 +248,8 @@ export default function EventosPage() {
                         <span className="truncate">{event.lugar}</span>
                       </span>
                       <span className="tabular-nums">
-                        {formatEventDate(event.fechas[0])}
-                        {event.fechas.length > 1 && ` · +${event.fechas.length - 1} fecha${event.fechas.length > 2 ? 's' : ''}`}
+                        {fechas.finalizado ? 'Última: ' : fechas.total > 1 ? 'Próxima: ' : ''}
+                        {formatEventDate(fechas.proxima, true)}
                       </span>
                     </p>
                     <div className="md:hidden mt-2.5 max-w-[220px]">

@@ -9,6 +9,8 @@ import { toast } from 'sonner'
 import { Copy, Check, ShieldCheck, Plus, Trash2, Link2, Lock, Users, Info, CalendarDays, UserCog } from 'lucide-react'
 import { Avatar, BackLink, Button, Card, CardHeader, Eyebrow, IconButton, Input, Textarea } from '@/components/admin/ui'
 import { cn } from '@/lib/cn'
+import { MAX_FECHAS } from '@/lib/recurrencia'
+import { RecurrenciaEditor } from '../_recurrencia'
 
 const FormSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -53,12 +55,17 @@ export default function NuevoEventoPage() {
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  const [serie, setSerie] = useState<Date[] | null>(null)
+
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: { fechas: [{ value: '' }] } })
+
+  const primeraFecha = watch('fechas.0.value')
 
   const { fields: fechaFields, append: appendFecha, remove: removeFecha } = useFieldArray({
     control,
@@ -91,6 +98,21 @@ export default function NuevoEventoPage() {
   }
 
   async function onSubmit(data: FormValues, estado: 'borrador' | 'publicado') {
+    // El input datetime-local está en hora local; se envía en ISO para que el servidor (en UTC) guarde la hora correcta.
+    const base = serie ?? [new Date(data.fechas[0].value)]
+    const sueltas = data.fechas.slice(1).map((f) => new Date(f.value))
+    const fechas = [...new Map([...base, ...sueltas].filter((d) => !Number.isNaN(d.getTime())).map((d) => [d.getTime(), d])).values()].sort(
+      (a, b) => a.getTime() - b.getTime()
+    )
+    if (fechas.length === 0) {
+      toast.error('Quitaste todas las fechas de la repetición. Restaura alguna o cambia la regla.')
+      return
+    }
+    if (fechas.length > MAX_FECHAS) {
+      toast.error(`Un evento puede tener como máximo ${MAX_FECHAS} fechas.`)
+      return
+    }
+
     setSubmitting(true)
     try {
       const res = await fetch('/api/events', {
@@ -98,7 +120,7 @@ export default function NuevoEventoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: data.nombre,
-          fechas: data.fechas.map((f) => f.value),
+          fechas: fechas.map((d) => d.toISOString()),
           lugar: data.lugar,
           capacidadMaxima: data.capacidadMaxima ? Number(data.capacidadMaxima) : undefined,
           descripcionPublica: data.descripcionPublica || undefined,
@@ -187,29 +209,43 @@ export default function NuevoEventoPage() {
           </Card>
 
           <Card>
-            <CardHeader icon={CalendarDays} tone="success" title="Fechas" description="Programa una o varias fechas; cada persona elige a cuál asistir." />
+            <CardHeader
+              icon={CalendarDays}
+              tone="success"
+              title="Fechas"
+              description="Una fecha, varias sueltas o una serie que se repite (diaria, semanal o mensual). Cada persona elige a cuál asistir."
+            />
             <div className="p-5 md:p-6">
-              <div className="space-y-2.5">
-                {fechaFields.map((field, index) => (
-                  <div key={field.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 text-[12px] font-semibold text-ink-faint tabular-nums flex-shrink-0">{index + 1}.</span>
-                      <Input type="datetime-local" {...register(`fechas.${index}.value`)} aria-label={`Fecha ${index + 1}`} className="flex-1" />
-                      {fechaFields.length > 1 && (
-                        <IconButton label={`Quitar fecha ${index + 1}`} tone="danger" onClick={() => removeFecha(index)}>
-                          <Trash2 className="w-4 h-4" strokeWidth={1.8} />
-                        </IconButton>
-                      )}
-                    </div>
-                    <div className="pl-8">
-                      <FieldError message={errors.fechas?.[index]?.value?.message} />
-                    </div>
+              <Label htmlFor="fecha-inicio">{serie ? 'Primera fecha y hora' : 'Fecha y hora'}</Label>
+              <Input id="fecha-inicio" type="datetime-local" {...register('fechas.0.value')} className="sm:max-w-[340px]" />
+              <FieldError message={errors.fechas?.[0]?.value?.message} />
+
+              <RecurrenciaEditor inicio={primeraFecha ?? ''} onChange={setSerie} />
+
+              {fechaFields.length > 1 && (
+                <div className="mt-5">
+                  <p className="text-[13px] font-medium text-ink mb-1.5">{serie ? 'Fechas adicionales' : 'Otras fechas'}</p>
+                  <div className="space-y-2.5">
+                    {fechaFields.slice(1).map((field, i) => {
+                      const index = i + 1
+                      return (
+                        <div key={field.id}>
+                          <div className="flex items-center gap-2">
+                            <Input type="datetime-local" {...register(`fechas.${index}.value`)} aria-label={`Fecha adicional ${index}`} className="flex-1 sm:max-w-[340px]" />
+                            <IconButton label={`Quitar fecha adicional ${index}`} tone="danger" onClick={() => removeFecha(index)}>
+                              <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+                            </IconButton>
+                          </div>
+                          <FieldError message={errors.fechas?.[index]?.value?.message} />
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
               <FieldError message={errors.fechas?.root?.message} />
               <Button variant="ghost" size="sm" className="mt-3 text-primary" icon={<Plus className="w-4 h-4" strokeWidth={1.8} />} onClick={() => appendFecha({ value: '' })}>
-                Agregar otra fecha
+                {serie ? 'Agregar una fecha suelta' : 'Agregar otra fecha'}
               </Button>
             </div>
           </Card>

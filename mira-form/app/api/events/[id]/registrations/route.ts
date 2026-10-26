@@ -109,6 +109,9 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
   if (!esFechaValida) {
     return NextResponse.json({ success: false, message: 'La fecha seleccionada no es válida' }, { status: 400 })
   }
+  if (fechaSeleccionada.getTime() < Date.now()) {
+    return NextResponse.json({ success: false, message: 'Esa fecha ya pasó. Elige una de las próximas fechas.' }, { status: 400 })
+  }
 
   if (event.capacidadMaxima) {
     const inscritos = await Registration.countDocuments({

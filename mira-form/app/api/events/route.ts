@@ -66,7 +66,7 @@ export const GET = withCors(async (req: NextRequest) => {
 const createSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   descripcionPublica: z.string().optional(),
-  fechas: z.array(z.string().min(1)).min(1, 'Agrega al menos una fecha'),
+  fechas: z.array(z.string().min(1)).min(1, 'Agrega al menos una fecha').max(100, 'Máximo 100 fechas por evento'),
   lugar: z.string().min(1, 'El lugar es requerido'),
   capacidadMaxima: z.number().int().positive().optional(),
   estado: z.enum(['borrador', 'publicado']).default('borrador'),

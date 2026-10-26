@@ -36,7 +36,7 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
   descripcionPublica: z.string().optional(),
-  fechas: z.array(z.string().min(1)).min(1).optional(),
+  fechas: z.array(z.string().min(1)).min(1).max(100).optional(),
   lugar: z.string().min(1).optional(),
   capacidadMaxima: z.number().int().positive().nullable().optional(),
   estado: z.enum(['borrador', 'publicado', 'cerrado']).optional(),

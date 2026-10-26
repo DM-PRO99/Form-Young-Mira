@@ -12,7 +12,11 @@ import { MUNICIPIOS } from '@/lib/municipios'
 interface PublicEvent {
   nombre: string
   descripcionPublica: string
+  // Solo las fechas futuras, ordenadas de la más próxima a la más lejana.
   fechas: string[]
+  fechasLlenas: string[]
+  totalFechas: number
+  terminado: boolean
   lugar: string
   estado: 'borrador' | 'publicado' | 'cerrado'
   cupoAbierto: boolean
@@ -87,8 +91,9 @@ export default function InscribirsePage() {
         }
         const json = (await res.json()) as { data: PublicEvent }
         setEvent(json.data)
-        if (json.data.fechas.length === 1) {
-          setValue('fecha', json.data.fechas[0])
+        const disponibles = json.data.fechas.filter((f) => !json.data.fechasLlenas.includes(f))
+        if (json.data.fechas.length === 1 && disponibles.length === 1) {
+          setValue('fecha', disponibles[0])
         }
       } catch {
         setNotFound(true)
@@ -166,7 +171,11 @@ export default function InscribirsePage() {
           <h1 className="text-[21px] font-semibold mb-3">{event.nombre}</h1>
           <div className="flex items-center gap-2 text-[13px] text-white/85 mb-1.5">
             <CalendarDays className="w-4 h-4" strokeWidth={1.8} />
-            {event.fechas.length === 1 ? formatFecha(event.fechas[0]) : `${event.fechas.length} fechas disponibles`}
+            {event.fechas.length === 0
+              ? 'Sin fechas próximas'
+              : event.fechas.length === 1
+                ? formatFecha(event.fechas[0])
+                : `Próxima: ${formatFecha(event.fechas[0])} · ${event.fechas.length} fechas disponibles`}
           </div>
           <div className="flex items-center gap-2 text-[13px] text-white/85">
             <MapPin className="w-4 h-4" strokeWidth={1.8} />
@@ -203,9 +212,15 @@ export default function InscribirsePage() {
             </div>
           ) : cerrado ? (
             <div className="text-center py-6">
-              <h2 className="text-[17px] font-semibold text-ink mb-1.5">Inscripciones no disponibles</h2>
+              <h2 className="text-[17px] font-semibold text-ink mb-1.5">
+                {event.terminado ? 'Este evento ya terminó' : event.estado === 'publicado' ? 'Cupo agotado' : 'Inscripciones no disponibles'}
+              </h2>
               <p className="text-[13.5px] text-ink-muted">
-                Este evento no está recibiendo inscripciones en este momento.
+                {event.terminado
+                  ? 'Todas las fechas de este evento ya pasaron. ¡Gracias por tu interés!'
+                  : event.estado === 'publicado'
+                    ? 'Todas las próximas fechas alcanzaron el cupo máximo.'
+                    : 'Este evento no está recibiendo inscripciones en este momento.'}
               </p>
             </div>
           ) : (
@@ -221,11 +236,15 @@ export default function InscribirsePage() {
                     <option value="" disabled>
                       Selecciona una fecha
                     </option>
-                    {event.fechas.map((f) => (
-                      <option key={f} value={f}>
-                        {formatFecha(f)}
-                      </option>
-                    ))}
+                    {event.fechas.map((f) => {
+                      const llena = event.fechasLlenas.includes(f)
+                      return (
+                        <option key={f} value={f} disabled={llena}>
+                          {formatFecha(f)}
+                          {llena ? ' (cupo lleno)' : ''}
+                        </option>
+                      )
+                    })}
                   </select>
                   {errors.fecha && <p className="text-[12px] text-danger mt-1">{errors.fecha.message}</p>}
                 </div>
