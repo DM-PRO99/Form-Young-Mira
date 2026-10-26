@@ -157,7 +157,7 @@ export default function CursoPage() {
           <div className="w-11 h-11 rounded-[12px] flex-shrink-0" style={{ background: courseGradient(course._id) }} />
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-0.5">
-              <h2 className="text-[19px] font-semibold text-ink truncate">{course.titulo}</h2>
+              <h2 className="text-[20px] md:text-[22px] font-extrabold text-ink tracking-[-0.015em] truncate">{course.titulo}</h2>
               {course.estado === 'borrador' && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-canvas text-ink-faint">Borrador</span>
               )}

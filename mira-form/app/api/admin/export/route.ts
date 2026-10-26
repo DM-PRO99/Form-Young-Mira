@@ -5,6 +5,7 @@ import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
 import { withCors, corsPreflight } from '@/lib/cors'
 import { QUERY_MAX_TIME_MS, searchPattern } from '@/lib/searchRegex'
+import { FILTRO_COMPLETO, FILTRO_INCOMPLETO } from '@/lib/registroEstado'
 
 type MongoFilter = Record<string, unknown>
 
@@ -105,6 +106,10 @@ export const GET = withCors(async (req: NextRequest) => {
     }
     filters.push({ updatedAt: dr })
   }
+  const estado = searchParams.get('estado') ?? ''
+  if (estado === 'incompleto') filters.push(FILTRO_INCOMPLETO)
+  if (estado === 'completo') filters.push(FILTRO_COMPLETO)
+
   const pattern = searchPattern(q)
   if (pattern) {
     filters.push({

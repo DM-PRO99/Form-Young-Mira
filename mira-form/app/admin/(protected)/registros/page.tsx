@@ -15,6 +15,8 @@ import {
   type Column,
 } from '@/components/admin/ui'
 import { MUNICIPIOS } from '@/lib/municipios'
+import { esRegistroCompleto } from '@/lib/registroEstado'
+import { Badge } from '@/components/admin/ui'
 
 interface Submission {
   _id: string
@@ -46,6 +48,10 @@ const COLUMNS: Column<Submission>[] = [
   { header: 'Nombre', cell: (r) => <span className="font-medium text-ink">{getNombre(r.datos)}</span> },
   { header: 'Cédula', cell: (r) => <span className="font-mono tabular-nums text-[12.5px] text-ink-muted">{r.cedula}</span> },
   { header: 'Municipio', cell: (r) => <MunicipioBadge municipio={r.municipio} /> },
+  {
+    header: 'Estado',
+    cell: (r) => (esRegistroCompleto(r.datos) ? <Badge tone="success">Completo</Badge> : <Badge tone="warning">Pendiente</Badge>),
+  },
   { header: 'Actualizado', cell: (r) => <span className="tabular-nums text-ink-muted">{formatDate(r.updatedAt)}</span> },
   {
     header: <span className="sr-only">Abrir</span>,
@@ -68,7 +74,22 @@ export default function RegistrosPage() {
   const [municipio, setMunicipio] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [estado, setEstado] = useState('')
+  const [urlLeida, setUrlLeida] = useState(false)
   const [userMunicipios, setUserMunicipios] = useState<string[]>([...MUNICIPIOS])
+
+  // Filtros que llegan por URL desde el dashboard (búsqueda y "pendientes de revisión").
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const initialQ = params.get('q') ?? ''
+    const initialEstado = params.get('estado') ?? ''
+    if (initialQ) {
+      setSearchInput(initialQ)
+      setQ(initialQ)
+    }
+    if (initialEstado === 'completo' || initialEstado === 'incompleto') setEstado(initialEstado)
+    setUrlLeida(true)
+  }, [])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const limit = 20
@@ -99,6 +120,7 @@ export default function RegistrosPage() {
         if (municipio) params.set('municipio', municipio)
         if (dateFrom) params.set('dateFrom', dateFrom)
         if (dateTo) params.set('dateTo', dateTo)
+        if (estado) params.set('estado', estado)
         params.set('page', String(currentPage))
 
         const res = await fetch(`/api/admin/registros?${params.toString()}`)
@@ -112,16 +134,16 @@ export default function RegistrosPage() {
         setLoading(false)
       }
     },
-    [q, municipio, dateFrom, dateTo]
+    [q, municipio, dateFrom, dateTo, estado]
   )
 
   useEffect(() => {
     setPage(1)
-  }, [q, municipio, dateFrom, dateTo])
+  }, [q, municipio, dateFrom, dateTo, estado])
 
   useEffect(() => {
-    void fetchData(page)
-  }, [fetchData, page])
+    if (urlLeida) void fetchData(page)
+  }, [fetchData, page, urlLeida])
 
   useEffect(() => {
     function handleRefresh() {
@@ -143,6 +165,7 @@ export default function RegistrosPage() {
     setMunicipio('')
     setDateFrom('')
     setDateTo('')
+    setEstado('')
   }
 
   function handleExport() {
@@ -151,6 +174,7 @@ export default function RegistrosPage() {
     if (municipio) params.set('municipio', municipio)
     if (dateFrom) params.set('dateFrom', dateFrom)
     if (dateTo) params.set('dateTo', dateTo)
+    if (estado) params.set('estado', estado)
     const a = document.createElement('a')
     a.href = `/api/admin/export?${params.toString()}`
     a.download = 'registros.csv'
@@ -159,7 +183,7 @@ export default function RegistrosPage() {
     document.body.removeChild(a)
   }
 
-  const hasFilters = Boolean(q || municipio || dateFrom || dateTo)
+  const hasFilters = Boolean(q || municipio || dateFrom || dateTo || estado)
   const totalPages = Math.max(1, Math.ceil(total / limit))
   const start = total === 0 ? 0 : (page - 1) * limit + 1
   const end = Math.min(page * limit, total)
@@ -168,7 +192,7 @@ export default function RegistrosPage() {
     <div className="admin-view">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-[20px] font-semibold text-ink leading-tight tracking-[-0.01em]">Registros</h2>
+          <h2 className="text-[22px] font-extrabold text-ink leading-tight tracking-[-0.015em]">Registros</h2>
           <p className="text-[13px] text-ink-muted mt-1">
             {loading ? 'Cargando…' : `${total.toLocaleString('es-CO')} joven${total === 1 ? '' : 'es'}${hasFilters ? ' con estos filtros' : ''}`}
           </p>
@@ -186,7 +210,12 @@ export default function RegistrosPage() {
             placeholder="Buscar por cédula o nombre…"
             className="flex-1 min-w-0"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2.5">
+            <Select value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Estado" className="lg:w-[170px]">
+              <option value="">Todos los estados</option>
+              <option value="completo">Completos</option>
+              <option value="incompleto">Pendientes de revisión</option>
+            </Select>
             <Select value={municipio} onChange={(e) => setMunicipio(e.target.value)} aria-label="Municipio" className="lg:w-[200px]">
               <option value="">Todos los municipios</option>
               {userMunicipios.map((m) => (
@@ -234,8 +263,9 @@ export default function RegistrosPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-medium text-ink truncate">{getNombre(r.datos)}</p>
                   <p className="text-[12px] text-ink-muted font-mono tabular-nums mt-0.5">CC {r.cedula}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <MunicipioBadge municipio={r.municipio} />
+                    {esRegistroCompleto(r.datos) ? <Badge tone="success">Completo</Badge> : <Badge tone="warning">Pendiente</Badge>}
                     <span className="text-[11.5px] text-ink-faint">{formatDate(r.updatedAt)}</span>
                   </div>
                 </div>

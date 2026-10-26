@@ -94,7 +94,7 @@ export default function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           <Menu className="w-5 h-5" strokeWidth={1.8} />
         </button>
         <div className="min-w-0">
-          <h1 className="text-[16px] md:text-[18px] font-semibold text-ink leading-tight truncate">{title}</h1>
+          <h1 className="text-[17px] md:text-[20px] font-extrabold text-ink leading-tight tracking-[-0.01em] truncate">{title}</h1>
           {subtitle && <p className="hidden sm:block text-[12.5px] text-ink-muted leading-tight truncate">{subtitle}</p>}
         </div>
       </div>

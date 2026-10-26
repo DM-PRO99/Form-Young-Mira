@@ -30,6 +30,7 @@ import {
   Eyebrow,
   IconButton,
   Input,
+  KpiCard,
   ResponsiveTable,
   SearchInput,
   Skeleton,
@@ -227,7 +228,7 @@ export default function EventoDetailPage() {
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap mb-2">
-            <h2 className="text-[20px] md:text-[22px] font-semibold text-ink leading-tight tracking-[-0.01em]">{event.nombre}</h2>
+            <h2 className="text-[20px] md:text-[24px] font-extrabold text-ink leading-tight tracking-[-0.015em]">{event.nombre}</h2>
             <EventEstadoBadge estado={event.estado} />
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
@@ -296,16 +297,6 @@ export default function EventoDetailPage() {
 
 // ─── Resumen ────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, children }: { label: string; value: React.ReactNode; children?: React.ReactNode }) {
-  return (
-    <Card interactive className="p-5">
-      <Eyebrow className="mb-2.5">{label}</Eyebrow>
-      <p className="text-[32px] font-semibold tabular-nums text-ink leading-none tracking-[-0.03em] mb-2.5">{value}</p>
-      {children}
-    </Card>
-  )
-}
-
 function ResumenTab({ id, event, publicUrl, onSeeAll }: { id: string; event: EventDetail; publicUrl: string; onSeeAll: () => void }) {
   const [summary, setSummary] = useState<Summary | null>(null)
 
@@ -334,33 +325,33 @@ function ResumenTab({ id, event, publicUrl, onSeeAll }: { id: string; event: Eve
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-[1fr_1fr_1fr_300px] gap-4 md:gap-5">
-      <StatCard label="Inscritos" value={<span className="text-primary">{summary.inscritos}</span>}>
+      <KpiCard label="Inscritos" icon={Users} tone="primary" value={summary.inscritos}>
         {summary.capacidadMaxima ? (
           <>
-            <p className="text-[12.5px] text-ink-muted mb-2">
-              de {summary.capacidadMaxima} cupos · quedan {summary.cuposDisponibles}
+            <p className="mb-2">
+              de {summary.capacidadMaxima} cupos · quedan <span className="font-bold text-ink">{summary.cuposDisponibles}</span>
             </p>
             <ProgressBar value={cupo ?? 0} tone={cupo !== null && cupo >= 1 ? 'danger' : 'primary'} />
           </>
         ) : (
-          <p className="text-[12.5px] text-ink-muted">Sin límite de cupo</p>
+          <p>Sin límite de cupo</p>
         )}
-      </StatCard>
+      </KpiCard>
 
-      <StatCard label="Inventario" value={`${summary.inventario.porcentaje}%`}>
-        <p className="text-[12.5px] text-ink-muted mb-2">
+      <KpiCard label="Inventario" icon={Package} tone="success" value={`${summary.inventario.porcentaje}%`}>
+        <p className="mb-2">
           {summary.inventario.conseguidos} de {summary.inventario.total} ítems listos
         </p>
         <ProgressBar value={summary.inventario.porcentaje / 100} tone={summary.inventario.porcentaje === 100 ? 'success' : 'primary'} />
-      </StatCard>
+      </KpiCard>
 
-      <StatCard label="Tareas" value={`${summary.tareas.completadas}/${summary.tareas.total}`}>
-        <p className="text-[12.5px] text-ink-muted mb-2">completadas</p>
+      <KpiCard label="Tareas" icon={ListChecks} tone="violet" value={`${summary.tareas.completadas}/${summary.tareas.total}`}>
+        <p className="mb-2">completadas</p>
         <ProgressBar
           value={summary.tareas.total ? summary.tareas.completadas / summary.tareas.total : 0}
           tone={summary.tareas.total > 0 && summary.tareas.completadas === summary.tareas.total ? 'success' : 'primary'}
         />
-      </StatCard>
+      </KpiCard>
 
       <div className="space-y-4 md:col-span-3 xl:col-span-1 xl:row-span-2 grid md:grid-cols-2 xl:grid-cols-1 gap-4 md:space-y-0 xl:content-start">
         <Card className="p-4">
@@ -390,6 +381,7 @@ function ResumenTab({ id, event, publicUrl, onSeeAll }: { id: string; event: Eve
 
       <Card className="md:col-span-3 overflow-hidden">
         <CardHeader
+          icon={Users}
           title="Últimas inscripciones"
           actions={
             summary.ultimasInscripciones.length > 0 && (
@@ -880,6 +872,8 @@ function CoordinadoresTab({ id, role, event, onUpdated }: { id: string; role: 'a
   return (
     <Card className="overflow-hidden">
       <CardHeader
+        icon={UserCog}
+        tone="violet"
         title="Coordinadores del evento"
         description={role === 'admin' ? 'Asigna quién puede ver y gestionar este evento.' : 'Solo un administrador puede cambiar la asignación.'}
       />

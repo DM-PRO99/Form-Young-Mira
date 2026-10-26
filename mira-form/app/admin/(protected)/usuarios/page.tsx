@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Check, Download, Eye, EyeOff, KeyRound, MoreHorizontal, Plus, UserCheck, UserPlus, Users, UserX } from 'lucide-react'
+import { Check, Download, Eye, EyeOff, KeyRound, MoreHorizontal, Plus, UserCheck, UserCog, UserPlus, Users, UserX } from 'lucide-react'
 import {
   Avatar,
   Badge,
@@ -14,6 +14,7 @@ import {
   Field,
   IconButton,
   Input,
+  KpiCard,
   Modal,
   PageHeader,
   SegmentedControl,
@@ -566,6 +567,15 @@ export default function UsuariosPage() {
           </>
         }
       />
+
+      {!loading && !error && users.length > 0 && (
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-5">
+          <KpiCard label="Usuarios" icon={Users} tone="primary" value={users.length} />
+          <KpiCard label="Activos" icon={UserCheck} tone="success" value={activeCount} />
+          <KpiCard label="Coordinadores" icon={UserCog} tone="violet" value={users.filter((u) => u.role === 'coordinador').length} />
+          <KpiCard label="Inactivos" icon={UserX} tone="warning" value={users.length - activeCount} />
+        </div>
+      )}
 
       <div className="mb-4 overflow-x-auto">
         <SegmentedControl

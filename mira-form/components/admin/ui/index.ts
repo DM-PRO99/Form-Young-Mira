@@ -1,5 +1,5 @@
 export { Button, IconButton, buttonClass } from './Button'
-export { Card, CardHeader, Eyebrow } from './Card'
+export { Card, CardHeader, Eyebrow, IconTile, KpiCard, type Tone } from './Card'
 export { Badge, MunicipioBadge, type BadgeTone } from './Badge'
 export { Input, Textarea, Select, SearchInput, Field, controlClass } from './Field'
 export { SegmentedControl } from './SegmentedControl'

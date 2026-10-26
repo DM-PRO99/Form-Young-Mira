@@ -104,7 +104,7 @@ export default function EstudioPage() {
     <div className="admin-view">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-[17px] font-semibold text-ink">Cursos</h2>
+          <h2 className="text-[22px] font-extrabold text-ink leading-tight tracking-[-0.015em]">Cursos</h2>
           <p className="text-[13px] text-ink-muted">
             {role === 'admin' ? 'Crea y organiza el material de formación del equipo' : 'Material de formación del equipo'}
           </p>

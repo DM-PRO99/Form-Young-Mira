@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CalendarDays, CheckCircle2, Clock, Edit2, MapPin, Save, Trash2, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ClipboardCheck, Clock, Edit2, IdCard, MapPin, Phone, Save, Sparkles, Trash2, X } from 'lucide-react'
 import {
   Avatar,
   BackLink,
@@ -12,10 +12,13 @@ import {
   CardHeader,
   ErrorState,
   Eyebrow,
+  IconTile,
   Input,
   Skeleton,
   useConfirm,
+  type Tone,
 } from '@/components/admin/ui'
+import { camposFaltantes } from '@/lib/registroEstado'
 
 interface Submission {
   _id: string
@@ -59,20 +62,26 @@ const FIELD_LABELS: Record<string, string> = {
   q_autorizacion_menor: 'Autorización acudiente (Ley 1581)',
 }
 
-const FIELD_SECTIONS: { title: string; subtitle: string; keys: string[] }[] = [
+const FIELD_SECTIONS: { title: string; subtitle: string; icon: typeof IdCard; tone: Tone; keys: string[] }[] = [
   {
     title: 'Identificación',
     subtitle: 'Datos personales y de documento',
+    icon: IdCard,
+    tone: 'primary',
     keys: ['q_1', 'tipoDocumento', 'numeroDocumento', 'q_2', 'q_3', 'q_4', 'q_7', 'q_10', 'q_autorizacion_menor'],
   },
   {
     title: 'Contacto',
     subtitle: 'Ubicación y medios de contacto',
+    icon: Phone,
+    tone: 'success',
     keys: ['q_5', 'q_8', 'q_8b', 'q_8c', 'q_9'],
   },
   {
     title: 'Participación',
     subtitle: 'Estudios, actividades e intereses',
+    icon: Sparkles,
+    tone: 'violet',
     keys: ['q_11', 'q_12', 'q_13', 'q_14', 'q_15', 'q_16', 'q_17', 'q_18', 'q_19', 'q_20', 'q_21', 'q_22', 'q_23', 'q_24', 'q_25'],
   },
 ]
@@ -99,12 +108,10 @@ function valueToString(v: unknown): string {
   return String(v)
 }
 
-function SummaryItem({ icon: Icon, label, value }: { icon: typeof MapPin; label: string; value: string }) {
+function SummaryItem({ icon, tone, label, value }: { icon: typeof MapPin; tone: Tone; label: string; value: string }) {
   return (
-    <Card className="p-4 flex items-center gap-3.5">
-      <span className="w-9 h-9 rounded-[10px] bg-primary-tint text-primary flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4" strokeWidth={1.8} />
-      </span>
+    <Card accent={tone} className="p-4 flex items-center gap-3.5">
+      <IconTile icon={icon} tone={tone} />
       <div className="min-w-0">
         <Eyebrow className="mb-0.5">{label}</Eyebrow>
         <p className="text-[13.5px] font-medium text-ink truncate">{value}</p>
@@ -234,6 +241,7 @@ export default function RegistroDetailPage() {
   }
 
   const nombre = typeof submission.datos['q_2'] === 'string' && submission.datos['q_2'] ? (submission.datos['q_2'] as string) : 'Registro'
+  const faltantes = camposFaltantes(submission.datos)
 
   return (
     <div className={'admin-view ' + (editMode ? 'pb-20' : '')}>
@@ -275,14 +283,21 @@ export default function RegistroDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-5">
+        <SummaryItem
+          icon={ClipboardCheck}
+          tone={faltantes.length === 0 ? 'success' : 'warning'}
+          label="Estado"
+          value={faltantes.length === 0 ? 'Completo' : `Pendiente · falta ${faltantes.join(', ')}`}
+        />
         <SummaryItem
           icon={submission.syncedToSheets ? CheckCircle2 : Clock}
+          tone={submission.syncedToSheets ? 'primary' : 'danger'}
           label="Google Sheets"
           value={submission.syncedToSheets ? 'Sincronizado' : 'Pendiente de sincronizar'}
         />
-        <SummaryItem icon={MapPin} label="Municipio" value={submission.municipio} />
-        <SummaryItem icon={CalendarDays} label="Fecha de registro" value={formatDate(submission.createdAt)} />
+        <SummaryItem icon={MapPin} tone="violet" label="Municipio" value={submission.municipio} />
+        <SummaryItem icon={CalendarDays} tone="primary" label="Fecha de registro" value={formatDate(submission.createdAt)} />
       </div>
 
       <div className="space-y-4 md:space-y-5">
@@ -291,7 +306,7 @@ export default function RegistroDetailPage() {
           if (keysPresent.length === 0) return null
           return (
             <Card key={section.title} className="overflow-hidden">
-              <CardHeader title={section.title} description={section.subtitle} />
+              <CardHeader icon={section.icon} tone={section.tone} title={section.title} description={section.subtitle} />
               <dl className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                 {keysPresent.map((key) => {
                   const value = valueToString(submission.datos[key])

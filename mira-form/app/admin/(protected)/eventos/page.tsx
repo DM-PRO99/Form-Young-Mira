@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CalendarDays, ChevronRight, MapPin, Plus, Trash2 } from 'lucide-react'
+import { CalendarClock, CalendarDays, ChevronRight, MapPin, Plus, Send, Trash2, Users } from 'lucide-react'
 import {
   Avatar,
   Button,
@@ -11,6 +11,7 @@ import {
   EmptyState,
   ErrorState,
   IconButton,
+  KpiCard,
   PageHeader,
   SearchInput,
   Select,
@@ -139,6 +140,9 @@ export default function EventosPage() {
   }
 
   const hasFilters = Boolean(q || estado)
+  const now = Date.now()
+  const proximos = events.filter((e) => e.fechas.some((f) => new Date(f).getTime() >= now)).length
+  const totalInscritos = events.reduce((s, e) => s + e.inscritos, 0)
 
   return (
     <div className="admin-view">
@@ -151,6 +155,15 @@ export default function EventosPage() {
           </Button>
         }
       />
+
+      {!loading && !error && events.length > 0 && !hasFilters && (
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-5">
+          <KpiCard label="Eventos" icon={CalendarDays} tone="primary" value={events.length} />
+          <KpiCard label="Publicados" icon={Send} tone="success" value={events.filter((e) => e.estado === 'publicado').length} />
+          <KpiCard label="Próximos" icon={CalendarClock} tone="violet" value={proximos} />
+          <KpiCard label="Inscritos" icon={Users} tone="warning" value={totalInscritos.toLocaleString('es-CO')} />
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
         <SearchInput value={searchInput} onChange={(e) => handleSearchChange(e.target.value)} placeholder="Buscar por nombre o lugar…" className="flex-1" />

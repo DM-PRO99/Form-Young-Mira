@@ -1,9 +1,10 @@
-import { Instrument_Sans, JetBrains_Mono } from 'next/font/google'
+import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 
-export const instrument = Instrument_Sans({
+// Misma tipografía que la landing y el login de coordinadores.
+export const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-instrument',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
   display: 'swap',
 })
 
@@ -14,4 +15,4 @@ export const jetbrains = JetBrains_Mono({
   display: 'swap',
 })
 
-export const fontVariables = `${instrument.variable} ${jetbrains.variable}`
+export const fontVariables = `${jakarta.variable} ${jetbrains.variable}`

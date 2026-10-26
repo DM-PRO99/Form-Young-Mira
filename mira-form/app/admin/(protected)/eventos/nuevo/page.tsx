@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
-import { Copy, Check, ShieldCheck, Plus, Trash2, Link2, Lock, Users } from 'lucide-react'
+import { Copy, Check, ShieldCheck, Plus, Trash2, Link2, Lock, Users, Info, CalendarDays, UserCog } from 'lucide-react'
 import { Avatar, BackLink, Button, Card, CardHeader, Eyebrow, IconButton, Input, Textarea } from '@/components/admin/ui'
 import { cn } from '@/lib/cn'
 
@@ -137,7 +137,7 @@ export default function NuevoEventoPage() {
           <div className="w-11 h-11 rounded-full bg-success-tint flex items-center justify-center mb-4">
             <Check className="w-5 h-5 text-success" strokeWidth={2} />
           </div>
-          <h2 className="text-[18px] font-semibold text-ink mb-1">Evento creado</h2>
+          <h2 className="text-[20px] font-extrabold text-ink mb-1">Evento creado</h2>
           <p className="text-[13.5px] text-ink-muted mb-5">Comparte este enlace para que las personas se inscriban.</p>
           <div className="bg-primary-tint rounded-field p-3 pl-4 flex items-center justify-between gap-3 mb-5">
             <p className="font-mono text-[12.5px] text-primary truncate">{publicUrl}</p>
@@ -154,12 +154,12 @@ export default function NuevoEventoPage() {
   return (
     <div className="admin-view pb-20 lg:pb-0">
       <BackLink href="/admin/eventos">Volver a eventos</BackLink>
-      <h2 className="text-[20px] font-semibold text-ink leading-tight tracking-[-0.01em] mb-5">Nuevo evento</h2>
+      <h2 className="text-[22px] font-extrabold text-ink leading-tight tracking-[-0.015em] mb-5">Nuevo evento</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5 lg:gap-6 items-start">
         <form id="nuevo-evento" className="space-y-5" onSubmit={(e) => e.preventDefault()}>
           <Card>
-            <CardHeader title="Información del evento" description="Lo que verán las personas en el enlace de inscripción." />
+            <CardHeader icon={Info} title="Información del evento" description="Lo que verán las personas en el enlace de inscripción." />
             <div className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="sm:col-span-2">
                 <Label htmlFor="nombre">Nombre del evento</Label>
@@ -187,7 +187,7 @@ export default function NuevoEventoPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Fechas" description="Programa una o varias fechas; cada persona elige a cuál asistir." />
+            <CardHeader icon={CalendarDays} tone="success" title="Fechas" description="Programa una o varias fechas; cada persona elige a cuál asistir." />
             <div className="p-5 md:p-6">
               <div className="space-y-2.5">
                 {fechaFields.map((field, index) => (
@@ -215,7 +215,7 @@ export default function NuevoEventoPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Coordinadores" description="Quiénes pueden ver y gestionar este evento." />
+            <CardHeader icon={UserCog} tone="violet" title="Coordinadores" description="Quiénes pueden ver y gestionar este evento." />
             <div className="p-5 md:p-6">
               {role === 'admin' ? (
                 coordinadores.length === 0 ? (

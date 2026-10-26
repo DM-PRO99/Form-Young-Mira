@@ -56,19 +56,12 @@ export default function Sidebar({ user, onClose }: { user: SidebarUser; onClose?
     }
   }, [])
 
-  const sections: { title: string; items: NavItem[] }[] = [
-    {
-      title: 'Juventudes',
-      items: [
-        { href: '/admin/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
-        { href: '/admin/registros', label: 'Registros', icon: FileText, badge: totalRegistros ?? undefined },
-        { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
-        { href: '/admin/estudio', label: 'Estudio', icon: GraduationCap },
-      ],
-    },
-    ...(user.role === 'admin'
-      ? [{ title: 'Administración', items: [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }] }]
-      : []),
+  const items: NavItem[] = [
+    { href: '/admin/dashboard', label: 'Gestión de Juventudes', icon: LayoutDashboard, exact: true },
+    { href: '/admin/registros', label: 'Registros', icon: FileText, badge: totalRegistros ?? undefined },
+    ...(user.role === 'admin' ? [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }] : []),
+    { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
+    { href: '/admin/estudio', label: 'Estudio', icon: GraduationCap },
   ]
 
   function isActive(item: NavItem): boolean {
@@ -77,18 +70,21 @@ export default function Sidebar({ user, onClose }: { user: SidebarUser; onClose?
   }
 
   return (
-    <div className="h-full flex flex-col text-white bg-gradient-to-b from-sidebar-from to-sidebar-to">
-      <div className="px-5 pt-6 pb-6 flex items-center gap-3">
+    <div className="relative h-full flex flex-col text-white bg-gradient-to-b from-sidebar-from to-sidebar-to overflow-hidden">
+      <div
+        className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(30,86,232,0.45), transparent 70%)' }}
+      />
+      <div
+        className="absolute -bottom-28 -left-20 w-72 h-72 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(91,63,228,0.35), transparent 70%)' }}
+      />
+      <div className="relative px-5 pt-6 pb-7 flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/mira-badge.png"
-          alt="Mira"
-          className="w-[34px] h-[34px] rounded-[9px] flex-shrink-0 object-cover"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)' }}
-        />
+        <img src="/mira-badge.png" alt="Mira" className="w-[44px] h-[44px] rounded-[12px] flex-shrink-0 object-cover" />
         <div className="leading-tight flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-white">Mira</p>
-          <p className="text-[10.5px] font-semibold tracking-[0.1em] text-sidebar-ink">PANEL JUVENTUDES</p>
+          <p className="text-[15px] font-extrabold text-white">Mira</p>
+          <p className="text-[10.5px] font-bold tracking-[0.12em] text-sidebar-ink">PANEL</p>
         </div>
         {onClose && (
           <button
@@ -101,48 +97,43 @@ export default function Sidebar({ user, onClose }: { user: SidebarUser; onClose?
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 space-y-5">
-        {sections.map((section) => (
-          <div key={section.title}>
-            <p className="px-3 mb-1.5 text-[10.5px] font-semibold tracking-[0.1em] uppercase text-sidebar-ink/70">
-              {section.title}
-            </p>
-            <div className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = isActive(item)
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'sidebar-item relative flex items-center justify-between gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px]',
-                      'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/25',
-                      active ? 'bg-white/[0.11] text-white font-semibold' : 'text-sidebar-ink'
-                    )}
-                  >
-                    {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-white" />}
-                    <span className="flex items-center gap-2.5">
-                      <Icon className="w-[17px] h-[17px] flex-shrink-0" strokeWidth={1.8} />
-                      {item.label}
-                    </span>
-                    {item.badge !== undefined && (
-                      <span className="text-[11px] font-medium tabular-nums text-sidebar-ink">
-                        {item.badge.toLocaleString('es-CO')}
-                      </span>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+      <nav className="relative flex-1 overflow-y-auto px-3 space-y-1">
+        {items.map((item) => {
+          const active = isActive(item)
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'sidebar-item flex items-center justify-between gap-2.5 h-11 px-3 rounded-[12px] text-[13.5px]',
+                'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/25',
+                active ? 'bg-primary text-white font-semibold shadow-[0_8px_18px_-8px_rgba(30,86,232,0.8)]' : 'text-sidebar-ink font-medium'
+              )}
+            >
+              <span className="flex items-center gap-3">
+                <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
+                {item.label}
+              </span>
+              {item.badge !== undefined && (
+                <span
+                  className={cn(
+                    'min-w-[28px] h-[22px] px-1.5 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums',
+                    active ? 'bg-white/20 text-white' : 'bg-white/10 text-white'
+                  )}
+                >
+                  {item.badge.toLocaleString('es-CO')}
+                </span>
+              )}
+            </Link>
+          )
+        })}
       </nav>
 
-      <div className="px-3 pb-5 pt-4 border-t border-white/[0.09]">
+      <div className="relative px-3 pb-5 pt-4 border-t border-white/[0.09]">
         <div className="flex items-center gap-2.5 px-2 py-1.5">
-          <Avatar name={user.name} email={user.email} className="bg-white/[0.14] text-white" />
+          <Avatar name={user.name} email={user.email} size="md" className="bg-white/[0.14] text-white" />
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium text-white truncate leading-tight">{user.name ?? user.email ?? 'Usuario'}</p>
             <p className="text-[11px] text-sidebar-ink truncate leading-tight">{roleLabel(user.role)}</p>
