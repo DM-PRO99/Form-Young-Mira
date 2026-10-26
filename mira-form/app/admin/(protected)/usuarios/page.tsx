@@ -1,21 +1,27 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
+import { Check, Download, Eye, EyeOff, KeyRound, MoreHorizontal, Plus, UserCheck, UserPlus, Users, UserX } from 'lucide-react'
 import {
-  UserPlus,
-  MoreHorizontal,
-  X,
-  Loader2,
-  Eye,
-  EyeOff,
-  KeyRound,
-  UserCheck,
-  UserX,
-  Plus,
-  Download,
-} from 'lucide-react'
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  Input,
+  Modal,
+  PageHeader,
+  SegmentedControl,
+  Skeleton,
+  useConfirm,
+} from '@/components/admin/ui'
+import { MUNICIPIOS } from '@/lib/municipios'
+import { cn } from '@/lib/cn'
 
 interface AdminUser {
   _id: string
@@ -28,64 +34,134 @@ interface AdminUser {
   updatedAt: string
 }
 
-const ALL_MUNICIPIOS = [
-  'Itagüí',
-  'Sabaneta',
-  'San Antonio de Prado',
-  'La Estrella',
-  'Medellín',
-]
+const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
-function getInitials(nombre: string, email: string): string {
-  if (nombre) {
-    const parts = nombre.trim().split(/\s+/)
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return nombre.slice(0, 2).toUpperCase()
-  }
-  return email.slice(0, 2).toUpperCase()
+async function readError(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string }
+  return body.error ?? body.message ?? fallback
 }
 
-function roleBadge(role: 'admin' | 'coordinador') {
-  if (role === 'admin') {
-    return (
-      <span
-        className="px-2 py-0.5 rounded-full text-xs font-medium"
-        style={{ backgroundColor: '#F4EFFB', color: '#5B3E9E' }}
-      >
-        Administrador
-      </span>
-    )
-  }
+// ─── Piezas reutilizables de la pantalla ────────────────────────────────────
+
+function PasswordInput({ id, value, onChange, placeholder, show, onToggle }: {
+  id: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  show: boolean
+  onToggle: () => void
+}) {
   return (
-    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-tint text-primary">
-      Coordinador
-    </span>
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? 'text' : 'password'}
+        required
+        minLength={8}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="pr-10"
+        autoComplete="new-password"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-[6px] text-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
+      >
+        {show ? <EyeOff className="w-4 h-4" strokeWidth={1.8} /> : <Eye className="w-4 h-4" strokeWidth={1.8} />}
+      </button>
+    </div>
   )
 }
 
-// ─── Create Modal ─────────────────────────────────────────────────────────────
-
-interface CreateModalProps {
-  onClose: () => void
-  onCreated: (user: AdminUser) => void
+function MunicipioChips({ selected, onToggle, disabled }: { selected: string[]; onToggle: (m: string) => void; disabled?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {MUNICIPIOS.map((m) => {
+        const active = selected.includes(m)
+        return (
+          <button
+            key={m}
+            type="button"
+            disabled={disabled}
+            aria-pressed={active}
+            onClick={() => onToggle(m)}
+            className={cn(
+              'press inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[12.5px] font-medium disabled:opacity-60',
+              'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20',
+              active ? 'bg-primary-tint border-primary/40 text-primary' : 'bg-white border-border-input text-ink-muted hover:border-primary/40'
+            )}
+          >
+            {active && <Check className="w-3.5 h-3.5" strokeWidth={2} />}
+            {m}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
-function CreateModal({ onClose, onCreated }: CreateModalProps) {
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, onOutside: () => void, active: boolean) {
+  useEffect(() => {
+    if (!active) return
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onOutside()
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onOutside()
+    }
+    document.addEventListener('mousedown', handle)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', handle)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [ref, onOutside, active])
+}
+
+function Popover({ open, align, children }: { open: boolean; align: 'left' | 'right'; children: React.ReactNode }) {
+  const reduceMotion = useReducedMotion()
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'scale(0.96)' }}
+          animate={{ opacity: 1, transform: 'scale(1)', transition: { duration: 0.15, ease: EASE_OUT } }}
+          exit={{ opacity: 0, transition: { duration: 0.1 } }}
+          style={{ transformOrigin: align === 'right' ? 'top right' : 'top left' }}
+          className={cn(
+            'absolute top-full mt-1.5 z-20 w-52 bg-surface border border-border rounded-card shadow-pop py-1.5',
+            align === 'right' ? 'right-0' : 'left-0'
+          )}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ─── Modales ────────────────────────────────────────────────────────────────
+
+function CreateModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (user: AdminUser) => void }) {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([])
+  const [selected, setSelected] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
 
-  function toggleMunicipio(m: string) {
-    setSelectedMunicipios((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
-    )
-  }
+  useEffect(() => {
+    if (!open) return
+    setNombre('')
+    setEmail('')
+    setPassword('')
+    setSelected([])
+    setFieldError(null)
+  }, [open])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -99,182 +175,89 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
       const res = await fetch('/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          nombre,
-          municipios: selectedMunicipios,
-        }),
+        body: JSON.stringify({ email, password, nombre, municipios: selected }),
       })
-      if (!res.ok) {
-        const body = (await res.json()) as { message?: string }
-        throw new Error(body.message ?? 'Error al crear usuario')
-      }
+      if (!res.ok) throw new Error(await readError(res, 'No se pudo crear el usuario'))
       const json = (await res.json()) as { data: AdminUser }
-      toast.success('Coordinador creado correctamente')
+      toast.success('Coordinador creado')
       onCreated(json.data)
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'No se pudo crear el usuario'
-      toast.error(message)
+      setFieldError(err instanceof Error ? err.message : 'No se pudo crear el usuario')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.16 }}
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.97 }}
-        transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-        className="relative bg-surface rounded-section shadow-xl w-full max-w-md z-10 overflow-hidden"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-base font-semibold text-ink">Crear coordinador</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-ink-faint hover:text-ink hover:bg-canvas transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
-          >
-            <X className="w-4 h-4" strokeWidth={1.8} />
-          </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Crear coordinador"
+      description="Tendrá acceso a los registros de los municipios que le asignes."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="create-user-form" loading={submitting} icon={<UserPlus className="w-4 h-4" strokeWidth={1.8} />}>
+            Crear coordinador
+          </Button>
+        </>
+      }
+    >
+      <form id="create-user-form" onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        {fieldError && <p className="text-[13px] text-danger bg-danger-tint rounded-field px-3 py-2">{fieldError}</p>}
+        <Field label="Nombre completo">
+          {(id) => <Input id={id} required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre del coordinador" />}
+        </Field>
+        <Field label="Correo electrónico">
+          {(id) => (
+            <Input id={id} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" autoComplete="off" />
+          )}
+        </Field>
+        <Field label="Contraseña" hint="Mínimo 8 caracteres.">
+          {(id) => (
+            <PasswordInput
+              id={id}
+              value={password}
+              onChange={setPassword}
+              placeholder="Contraseña inicial"
+              show={showPassword}
+              onToggle={() => setShowPassword((v) => !v)}
+            />
+          )}
+        </Field>
+        <div>
+          <p className="text-[13px] font-medium text-ink mb-2">Municipios asignados</p>
+          <MunicipioChips selected={selected} onToggle={(m) => setSelected((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]))} />
         </div>
-
-        <form onSubmit={(e) => void handleSubmit(e)} className="px-6 py-5 space-y-4">
-          {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
-
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              required
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-              placeholder="Nombre del coordinador"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">
-              Correo electrónico
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-              placeholder="correo@ejemplo.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">Contraseña</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                placeholder="Mínimo 8 caracteres"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 rounded"
-                aria-label={showPassword ? 'Ocultar' : 'Mostrar'}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" strokeWidth={1.8} />
-                ) : (
-                  <Eye className="w-4 h-4" strokeWidth={1.8} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-ink mb-2">
-              Municipios asignados
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {ALL_MUNICIPIOS.map((m) => (
-                <label key={m} className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={selectedMunicipios.includes(m)}
-                    onChange={() => toggleMunicipio(m)}
-                    className="w-4 h-4 rounded border-border-input accent-primary"
-                  />
-                  <span className="text-sm text-ink">{m}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm border border-border-input bg-white rounded-field font-medium text-ink hover:bg-canvas transition duration-150 active:scale-[0.97] disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary-3d flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-white rounded-field font-medium disabled:opacity-60"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <UserPlus className="w-4 h-4" strokeWidth={1.8} />
-              )}
-              Crear
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
+      </form>
+    </Modal>
   )
 }
 
-// ─── Reset Password Modal ─────────────────────────────────────────────────────
-
-interface ResetPasswordModalProps {
-  user: AdminUser
-  onClose: () => void
-}
-
-function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
+function ResetPasswordModal({ user, onClose }: { user: AdminUser | null; onClose: () => void }) {
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [confirmValue, setConfirmValue] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!user) return
+    setPassword('')
+    setConfirmValue('')
+    setFieldError(null)
+  }, [user])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!user) return
     if (password.length < 8) {
       setFieldError('La contraseña debe tener al menos 8 caracteres.')
       return
     }
-    if (password !== confirm) {
+    if (password !== confirmValue) {
       setFieldError('Las contraseñas no coinciden.')
       return
     }
@@ -286,162 +269,135 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       })
-      if (!res.ok) throw new Error('Error al resetear contraseña')
-      toast.success('Contraseña actualizada correctamente')
+      if (!res.ok) throw new Error(await readError(res, 'No se pudo actualizar la contraseña'))
+      toast.success('Contraseña actualizada')
       onClose()
-    } catch {
-      toast.error('No se pudo actualizar la contraseña')
+    } catch (err) {
+      setFieldError(err instanceof Error ? err.message : 'No se pudo actualizar la contraseña')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.16 }}
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.97 }}
-        transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-        className="relative bg-surface rounded-section shadow-xl w-full max-w-sm z-10 overflow-hidden"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-base font-semibold text-ink">Resetear contraseña</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-ink-faint hover:text-ink hover:bg-canvas transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
-          >
-            <X className="w-4 h-4" strokeWidth={1.8} />
-          </button>
-        </div>
-        <form onSubmit={(e) => void handleSubmit(e)} className="px-6 py-5 space-y-4">
-          <p className="text-sm text-ink-muted">
-            Nueva contraseña para{' '}
-            <span className="font-medium text-ink">{user.nombre}</span>
-          </p>
-          {fieldError && <p className="text-sm text-danger">{fieldError}</p>}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">
-              Nueva contraseña
-            </label>
-            <div className="relative">
-              <input
-                type={showPw ? 'text' : 'password'}
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 pr-10 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-                placeholder="Mínimo 8 caracteres"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20 rounded"
-              >
-                {showPw ? (
-                  <EyeOff className="w-4 h-4" strokeWidth={1.8} />
-                ) : (
-                  <Eye className="w-4 h-4" strokeWidth={1.8} />
-                )}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">
-              Confirmar contraseña
-            </label>
-            <input
+    <Modal
+      open={user !== null}
+      onClose={onClose}
+      size="sm"
+      title="Cambiar contraseña"
+      description={user && <>Nueva contraseña para <span className="font-medium text-ink">{user.nombre}</span>.</>}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="reset-password-form" loading={submitting} icon={<KeyRound className="w-4 h-4" strokeWidth={1.8} />}>
+            Guardar
+          </Button>
+        </>
+      }
+    >
+      <form id="reset-password-form" onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        {fieldError && <p className="text-[13px] text-danger bg-danger-tint rounded-field px-3 py-2">{fieldError}</p>}
+        <Field label="Nueva contraseña">
+          {(id) => (
+            <PasswordInput id={id} value={password} onChange={setPassword} placeholder="Mínimo 8 caracteres" show={showPw} onToggle={() => setShowPw((v) => !v)} />
+          )}
+        </Field>
+        <Field label="Confirmar contraseña">
+          {(id) => (
+            <Input
+              id={id}
               type={showPw ? 'text' : 'password'}
               required
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+              value={confirmValue}
+              onChange={(e) => setConfirmValue(e.target.value)}
               placeholder="Repite la contraseña"
+              autoComplete="new-password"
             />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm border border-border-input bg-white rounded-field font-medium text-ink hover:bg-canvas transition duration-150 active:scale-[0.97] disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary-3d flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-white rounded-field font-medium disabled:opacity-60"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <KeyRound className="w-4 h-4" strokeWidth={1.8} />
-              )}
-              Guardar
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
+          )}
+        </Field>
+      </form>
+    </Modal>
   )
 }
 
-// ─── Municipio Popover ────────────────────────────────────────────────────────
+function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [sheetName, setSheetName] = useState('Sheet1')
+  const [importing, setImporting] = useState(false)
 
-interface MunicipioPopoverProps {
-  userId: string
-  currentMunicipios: string[]
-  onUpdated: (updated: AdminUser) => void
+  async function handleImport(e: React.FormEvent) {
+    e.preventDefault()
+    if (!sheetName.trim()) return
+    setImporting(true)
+    try {
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetName: sheetName.trim() }),
+      })
+      if (!res.ok) throw new Error(await readError(res, `Error al importar (HTTP ${res.status})`))
+      const result = (await res.json()) as { message: string }
+      toast.success(result.message)
+      window.dispatchEvent(new Event('mira:refresh'))
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al importar datos')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="sm"
+      title="Importar registros de Google Sheets"
+      description="Se agregan los registros nuevos y se actualizan los existentes por cédula."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={importing}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="import-form" loading={importing} icon={<Download className="w-4 h-4" strokeWidth={1.8} />}>
+            Importar
+          </Button>
+        </>
+      }
+    >
+      <form id="import-form" onSubmit={(e) => void handleImport(e)}>
+        <Field label="Nombre de la hoja" hint="Tal como aparece en la pestaña del Sheet.">
+          {(id) => <Input id={id} required value={sheetName} onChange={(e) => setSheetName(e.target.value)} />}
+        </Field>
+      </form>
+    </Modal>
+  )
 }
 
-function MunicipioPopover({ userId, currentMunicipios, onUpdated }: MunicipioPopoverProps) {
+// ─── Fila de usuario ────────────────────────────────────────────────────────
+
+function MunicipioEditor({ user, onUpdated }: { user: AdminUser; onUpdated: (u: AdminUser) => void }) {
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<string[]>(currentMunicipios)
   const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
+  useClickOutside(ref, close, open)
 
-  useEffect(() => {
-    setSelected(currentMunicipios)
-  }, [currentMunicipios])
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  async function handleToggle(m: string) {
-    const next = selected.includes(m)
-      ? selected.filter((x) => x !== m)
-      : [...selected, m]
-    setSelected(next)
+  async function toggle(m: string) {
+    const current = user.municipios || []
+    const next = current.includes(m) ? current.filter((x) => x !== m) : [...current, m]
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/usuarios/${userId}`, {
+      const res = await fetch(`/api/admin/usuarios/${user._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ municipios: next }),
       })
-      if (!res.ok) throw new Error('Error')
-      const json = (await res.json()) as { data: AdminUser }
-      onUpdated(json.data)
+      if (!res.ok) throw new Error()
+      onUpdated(((await res.json()) as { data: AdminUser }).data)
     } catch {
-      setSelected(currentMunicipios)
-      toast.error('No se pudo actualizar los municipios')
+      toast.error('No se pudieron actualizar los municipios')
     } finally {
       setSaving(false)
     }
@@ -450,139 +406,90 @@ function MunicipioPopover({ userId, currentMunicipios, onUpdated }: MunicipioPop
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-xs border border-dashed border-border-input text-ink-muted px-2 py-0.5 rounded-full hover:border-primary hover:text-primary transition-colors duration-150"
+        aria-expanded={open}
+        className="press inline-flex items-center gap-1 h-[22px] px-2 rounded-full border border-dashed border-border-input text-[11.5px] font-medium text-ink-muted hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
       >
-        <Plus className="w-3 h-3" strokeWidth={1.8} />
-        Municipio
+        <Plus className="w-3 h-3" strokeWidth={2} />
+        Municipios
       </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -4 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute left-0 top-7 z-20 w-48 bg-surface border border-border rounded-card shadow-elevated py-2"
-          >
-            {saving && (
-              <div className="flex items-center justify-center py-1">
-                <Loader2 className="w-3 h-3 animate-spin text-ink-faint" />
-              </div>
-            )}
-            {ALL_MUNICIPIOS.map((m) => (
-              <label
-                key={m}
-                className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-canvas transition-colors duration-100"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(m)}
-                  onChange={() => void handleToggle(m)}
-                  className="w-4 h-4 rounded border-border-input accent-primary"
-                />
-                <span className="text-sm text-ink">{m}</span>
-              </label>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Popover open={open} align="left">
+        <p className="px-3 pt-1 pb-2 text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">Asignar municipios</p>
+        {MUNICIPIOS.map((m) => {
+          const active = (user.municipios || []).includes(m)
+          return (
+            <button
+              key={m}
+              type="button"
+              disabled={saving}
+              onClick={() => void toggle(m)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-ink hover:bg-canvas disabled:opacity-60 transition-colors duration-100"
+            >
+              {m}
+              {active && <Check className="w-4 h-4 text-primary" strokeWidth={2} />}
+            </button>
+          )
+        })}
+      </Popover>
     </div>
   )
 }
 
-// ─── User Row Menu ────────────────────────────────────────────────────────────
-
-interface UserRowMenuProps {
-  user: AdminUser
-  onResetPassword: () => void
-  onToggleActivo: () => void
-}
-
-function UserRowMenu({ user, onResetPassword, onToggleActivo }: UserRowMenuProps) {
+function UserRowMenu({ user, onResetPassword, onToggleActivo }: { user: AdminUser; onResetPassword: () => void; onToggleActivo: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  const close = useCallback(() => setOpen(false), [])
+  useClickOutside(ref, close, open)
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-1.5 rounded-md border border-transparent text-ink-faint hover:text-ink hover:border-border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
-        aria-label="Opciones"
-      >
+      <IconButton label="Opciones" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <MoreHorizontal className="w-4 h-4" strokeWidth={1.8} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -4 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 top-8 z-20 w-48 bg-surface border border-border rounded-card shadow-elevated py-1"
-          >
-            <button
-              onClick={() => {
-                setOpen(false)
-                onResetPassword()
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-ink hover:bg-canvas transition-colors duration-100"
-            >
-              <KeyRound className="w-4 h-4 text-ink-faint" strokeWidth={1.8} />
-              Resetear contraseña
-            </button>
-            <button
-              onClick={() => {
-                setOpen(false)
-                onToggleActivo()
-              }}
-              className={
-                'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100 ' +
-                (user.activo
-                  ? 'text-danger hover:bg-danger-tint'
-                  : 'text-success hover:bg-success-tint')
-              }
-            >
-              {user.activo ? (
-                <>
-                  <UserX className="w-4 h-4" strokeWidth={1.8} />
-                  Desactivar
-                </>
-              ) : (
-                <>
-                  <UserCheck className="w-4 h-4" strokeWidth={1.8} />
-                  Activar
-                </>
-              )}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </IconButton>
+      <Popover open={open} align="right">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            onResetPassword()
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-ink hover:bg-canvas transition-colors duration-100"
+        >
+          <KeyRound className="w-4 h-4 text-ink-faint" strokeWidth={1.8} />
+          Cambiar contraseña
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            onToggleActivo()
+          }}
+          className={cn(
+            'w-full flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors duration-100',
+            user.activo ? 'text-danger hover:bg-danger-tint' : 'text-success hover:bg-success-tint'
+          )}
+        >
+          {user.activo ? <UserX className="w-4 h-4" strokeWidth={1.8} /> : <UserCheck className="w-4 h-4" strokeWidth={1.8} />}
+          {user.activo ? 'Desactivar acceso' : 'Reactivar acceso'}
+        </button>
+      </Popover>
     </div>
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Página ─────────────────────────────────────────────────────────────────
 
 type FilterKey = 'todos' | 'activos' | 'inactivos'
 
 export default function UsuariosPage() {
+  const confirm = useConfirm()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null)
-  const [importing, setImporting] = useState(false)
   const [filter, setFilter] = useState<FilterKey>('todos')
 
   const fetchUsers = useCallback(async () => {
@@ -590,9 +497,8 @@ export default function UsuariosPage() {
     setError(null)
     try {
       const res = await fetch('/api/admin/usuarios')
-      if (!res.ok) throw new Error('Error al cargar usuarios')
-      const json = (await res.json()) as { data: AdminUser[] }
-      setUsers(json.data)
+      if (!res.ok) throw new Error()
+      setUsers(((await res.json()) as { data: AdminUser[] }).data)
     } catch {
       setError('No se pudieron cargar los usuarios.')
     } finally {
@@ -614,238 +520,141 @@ export default function UsuariosPage() {
   }
 
   async function handleToggleActivo(user: AdminUser) {
+    if (user.activo) {
+      const ok = await confirm({
+        title: 'Desactivar acceso',
+        description: (
+          <>
+            <span className="font-medium text-ink">{user.nombre}</span> ya no podrá entrar al panel. Puedes reactivarlo cuando quieras.
+          </>
+        ),
+        confirmLabel: 'Desactivar',
+      })
+      if (!ok) return
+    }
     try {
       const res = await fetch(`/api/admin/usuarios/${user._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activo: !user.activo }),
       })
-      if (!res.ok) throw new Error('Error')
+      if (!res.ok) throw new Error()
       const json = (await res.json()) as { data: AdminUser }
       handleUserUpdated(json.data)
-      toast.success(json.data.activo ? 'Usuario activado' : 'Usuario desactivado')
+      toast.success(json.data.activo ? 'Acceso reactivado' : 'Acceso desactivado')
     } catch {
       toast.error('No se pudo actualizar el estado del usuario')
     }
   }
 
-  async function handleImportFromSheets() {
-    const sheetName = prompt('Ingresa el nombre de la hoja de Google Sheets:')
-    if (!sheetName) return
-
-    setImporting(true)
-    try {
-      const res = await fetch('/api/admin/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sheetName }),
-      })
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}))
-        throw new Error(error.error || `Error al importar (HTTP ${res.status})`)
-      }
-
-      const result = await res.json()
-      toast.success(result.message)
-    } catch (error: any) {
-      toast.error(error.message || 'Error al importar datos')
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="admin-view">
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-zinc-100 rounded-card animate-pulse h-20" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="admin-view flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-sm text-ink-muted">{error}</p>
-        <button onClick={() => void fetchUsers()} className="text-sm text-primary hover:underline">
-          Reintentar
-        </button>
-      </div>
-    )
-  }
-
   const activeCount = users.filter((u) => u.activo).length
-  const inactiveCount = users.length - activeCount
-  const filteredUsers = users.filter((u) => {
-    if (filter === 'activos') return u.activo
-    if (filter === 'inactivos') return !u.activo
-    return true
-  })
-
-  const segments: { key: FilterKey; label: string; count: number }[] = [
-    { key: 'todos', label: 'Todos', count: users.length },
-    { key: 'activos', label: 'Activos', count: activeCount },
-    { key: 'inactivos', label: 'Inactivos', count: inactiveCount },
-  ]
+  const filteredUsers = users.filter((u) => (filter === 'activos' ? u.activo : filter === 'inactivos' ? !u.activo : true))
 
   return (
     <div className="admin-view">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        {/* Segmented filter */}
-        <div className="flex items-center gap-0.5 bg-canvas rounded-field p-0.5 border border-border">
-          {segments.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setFilter(s.key)}
-              className={
-                'flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium rounded-[8px] transition-colors duration-150 ' +
-                (filter === s.key
-                  ? 'bg-white text-ink shadow-card'
-                  : 'text-ink-muted hover:text-ink')
-              }
-            >
-              {s.label}
-              <span className="tabular-nums text-ink-faint">{s.count}</span>
-            </button>
-          ))}
-        </div>
+      <PageHeader
+        title="Usuarios"
+        description="Administradores y coordinadores con acceso al panel"
+        actions={
+          <>
+            <Button variant="secondary" icon={<Download className="w-4 h-4" strokeWidth={1.8} />} onClick={() => setShowImport(true)}>
+              Importar de Sheets
+            </Button>
+            <Button icon={<UserPlus className="w-4 h-4" strokeWidth={1.8} />} onClick={() => setShowCreate(true)}>
+              Crear coordinador
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void handleImportFromSheets()}
-            disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 text-sm border border-primary text-primary hover:bg-primary-tint rounded-field font-medium transition duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {importing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Importando...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" strokeWidth={1.8} />
-                Importar de Sheets
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary-3d flex items-center gap-2 px-4 py-2 text-sm text-white rounded-field font-medium"
-          >
-            <UserPlus className="w-4 h-4" strokeWidth={1.8} />
-            Crear coordinador
-          </button>
-        </div>
+      <div className="mb-4 overflow-x-auto">
+        <SegmentedControl
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'todos', label: <>Todos <span className="tabular-nums text-ink-faint ml-1">{users.length}</span></> },
+            { value: 'activos', label: <>Activos <span className="tabular-nums text-ink-faint ml-1">{activeCount}</span></> },
+            { value: 'inactivos', label: <>Inactivos <span className="tabular-nums text-ink-faint ml-1">{users.length - activeCount}</span></> },
+          ]}
+        />
       </div>
 
-      <div className="bg-surface rounded-card border border-border shadow-card overflow-hidden">
-        {filteredUsers.map((user, i) => (
-          <div
-            key={user._id}
-            className={
-              'user-row-3d flex items-center gap-4 p-4 ' +
-              (i > 0 ? 'border-t border-[#F1F2F5]' : '')
-            }
-          >
-            {/* Avatar */}
-            <div
-              className={
-                'w-[38px] h-[38px] rounded-[11px] flex items-center justify-center text-sm font-bold flex-shrink-0 ' +
-                (user.activo ? 'bg-primary text-white' : 'bg-[#EFF1F6] text-[#9AA0AD]')
-              }
-            >
-              {getInitials(user.nombre, user.email)}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p
-                  className="font-medium"
-                  style={{ color: user.activo ? '#10131A' : '#5A6070' }}
-                >
-                  {user.nombre}
-                </p>
-                {roleBadge(user.role)}
-                {!user.activo && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF1F6] text-[#9AA0AD]">
-                    Inactivo
-                  </span>
-                )}
+      <Card>
+        {loading ? (
+          <div className="divide-y divide-[#F1F2F5]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 p-4">
+                <Skeleton className="w-10 h-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
               </div>
-              <p className="text-sm truncate" style={{ color: user.activo ? '#6B7280' : '#9AA0AD' }}>
-                {user.email}
-              </p>
-
-              {/* Municipios */}
-              <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                {(user.municipios || []).map((m) => (
-                  <span
-                    key={m}
-                    className="bg-canvas text-ink-muted text-xs px-2 py-0.5 rounded-full"
-                  >
-                    {m}
-                  </span>
-                ))}
-                {user.role === 'coordinador' && (
-                  <MunicipioPopover
-                    userId={user._id}
-                    currentMunicipios={user.municipios || []}
-                    onUpdated={handleUserUpdated}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Status */}
-            {user.activo && (
-              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-success-tint text-success flex-shrink-0">
-                Activo
-              </span>
-            )}
-
-            {/* Menu */}
-            <UserRowMenu
-              user={user}
-              onResetPassword={() => setResetPasswordUser(user)}
-              onToggleActivo={() => void handleToggleActivo(user)}
-            />
+            ))}
           </div>
-        ))}
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => void fetchUsers()} />
+        ) : filteredUsers.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={filter === 'todos' ? 'Aún no hay usuarios' : `No hay usuarios ${filter}`}
+            description={filter === 'todos' ? 'Crea el primer coordinador para darle acceso al panel.' : undefined}
+          />
+        ) : (
+          <div className="divide-y divide-[#F1F2F5]">
+            {filteredUsers.map((user) => (
+              <div
+                key={user._id}
+                className={cn(
+                  'user-row-3d flex items-start sm:items-center gap-3 sm:gap-4 p-4 first:rounded-t-card last:rounded-b-card',
+                  !user.activo && 'bg-surface-muted'
+                )}
+              >
+                <Avatar name={user.nombre} email={user.email} size="md" className={cn(!user.activo && 'bg-[#EFF1F6] text-ink-faint')} />
 
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-16 text-sm text-ink-faint">
-            No hay usuarios en este filtro
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={cn('text-[14px] font-medium', user.activo ? 'text-ink' : 'text-ink-muted')}>{user.nombre}</p>
+                    <Badge tone={user.role === 'admin' ? 'violet' : 'primary'}>{user.role === 'admin' ? 'Administrador' : 'Coordinador'}</Badge>
+                    {!user.activo && <Badge tone="neutral">Inactivo</Badge>}
+                  </div>
+                  <p className={cn('text-[12.5px] truncate mt-0.5', user.activo ? 'text-ink-muted' : 'text-ink-faint')}>{user.email}</p>
+
+                  {(user.role === 'coordinador' || (user.municipios || []).length > 0) && (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      {(user.municipios || []).map((m) => (
+                        <span key={m} className="inline-flex items-center h-[22px] px-2 rounded-full bg-canvas border border-border text-[11.5px] text-ink-muted">
+                          {m}
+                        </span>
+                      ))}
+                      {user.role === 'coordinador' && <MunicipioEditor user={user} onUpdated={handleUserUpdated} />}
+                    </div>
+                  )}
+                </div>
+
+                {user.activo && (
+                  <Badge tone="success" dot className="hidden sm:inline-flex">
+                    Activo
+                  </Badge>
+                )}
+
+                <UserRowMenu user={user} onResetPassword={() => setResetPasswordUser(user)} onToggleActivo={() => void handleToggleActivo(user)} />
+              </div>
+            ))}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Create modal */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <CreateModal
-            onClose={() => setShowCreateModal(false)}
-            onCreated={(user) => {
-              setUsers((prev) => [user, ...prev])
-              setShowCreateModal(false)
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Reset password modal */}
-      <AnimatePresence>
-        {resetPasswordUser && (
-          <ResetPasswordModal
-            user={resetPasswordUser}
-            onClose={() => setResetPasswordUser(null)}
-          />
-        )}
-      </AnimatePresence>
+      <CreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={(user) => {
+          setUsers((prev) => [user, ...prev])
+          setShowCreate(false)
+        }}
+      />
+      <ResetPasswordModal user={resetPasswordUser} onClose={() => setResetPasswordUser(null)} />
+      <ImportModal open={showImport} onClose={() => setShowImport(false)} />
     </div>
   )
 }
