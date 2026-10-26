@@ -6,8 +6,9 @@ import User from '@/models/User'
 // para que los cambios hechos por un admin apliquen sin necesidad de re-login.
 export async function getUserMunicipios(userId: string): Promise<string[]> {
   await connectToMongoDB()
-  const user = await User.findById(userId).select('municipios').lean()
-  return user?.municipios ?? []
+  const user = await User.findById(userId).select('municipios activo').lean()
+  if (!user?.activo) return []
+  return user.municipios ?? []
 }
 
 export function canAccessEvent(

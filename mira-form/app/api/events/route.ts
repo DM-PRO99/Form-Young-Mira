@@ -4,6 +4,7 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import Event from '@/models/Event'
 import Registration from '@/models/Registration'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { searchPattern } from '@/lib/searchRegex'
 import { z } from 'zod'
 
 type MongoFilter = Record<string, unknown>
@@ -30,11 +31,12 @@ export const GET = withCors(async (req: NextRequest) => {
 
   if (estado) filters.push({ estado })
 
-  if (q) {
+  const pattern = searchPattern(q)
+  if (pattern) {
     filters.push({
       $or: [
-        { nombre: { $regex: q, $options: 'i' } },
-        { lugar: { $regex: q, $options: 'i' } },
+        { nombre: { $regex: pattern, $options: 'i' } },
+        { lugar: { $regex: pattern, $options: 'i' } },
       ],
     })
   }
@@ -43,7 +45,7 @@ export const GET = withCors(async (req: NextRequest) => {
     filters.length > 1 ? { $and: filters } : filters.length === 1 ? filters[0] : {}
 
   const events = await Event.find(mongoFilter)
-    .sort({ fecha: -1 })
+    .sort({ 'fechas.0': -1 })
     .populate('coordinadoresAsignados', 'nombre email')
     .lean()
 
@@ -64,7 +66,7 @@ export const GET = withCors(async (req: NextRequest) => {
 const createSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   descripcionPublica: z.string().optional(),
-  fecha: z.string().min(1, 'La fecha es requerida'),
+  fechas: z.array(z.string().min(1)).min(1, 'Agrega al menos una fecha'),
   lugar: z.string().min(1, 'El lugar es requerido'),
   capacidadMaxima: z.number().int().positive().optional(),
   estado: z.enum(['borrador', 'publicado']).default('borrador'),
@@ -78,7 +80,7 @@ export const POST = withCors(async (req: NextRequest) => {
   const body: unknown = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
   await connectToMongoDB()
@@ -90,7 +92,7 @@ export const POST = withCors(async (req: NextRequest) => {
   const event = await Event.create({
     nombre: parsed.data.nombre,
     descripcionPublica: parsed.data.descripcionPublica,
-    fecha: new Date(parsed.data.fecha),
+    fechas: parsed.data.fechas.map((f) => new Date(f)),
     lugar: parsed.data.lugar,
     capacidadMaxima: parsed.data.capacidadMaxima,
     estado: parsed.data.estado,

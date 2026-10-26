@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
-import User from '@/models/User'
+import User, { MIRA_ROLES } from '@/models/User'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { withCors, corsPreflight } from '@/lib/cors'
@@ -18,7 +18,7 @@ export const GET = withCors(async () => {
   await connectToMongoDB()
   // La colección de usuarios se comparte con otros proyectos en el mismo cluster/DB;
   // filtramos por los roles propios de mira-form para no mezclar cuentas ajenas.
-  const users = await User.find({ role: { $in: ['admin', 'coordinador'] } })
+  const users = await User.find({ role: { $in: MIRA_ROLES } })
     .sort({ createdAt: -1 })
     .select('-passwordHash')
     .lean()
@@ -42,7 +42,7 @@ export const POST = withCors(async (req: NextRequest) => {
   const body: unknown = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
   await connectToMongoDB()

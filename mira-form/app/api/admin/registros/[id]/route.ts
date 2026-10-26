@@ -7,8 +7,11 @@ import SyncFailure from '@/models/SyncFailure'
 import { appendRow } from '@/lib/googleSheets'
 import { z } from 'zod'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { isValidObjectId } from 'mongoose'
 
 type RouteContext = { params: Promise<{ id: string }> }
+
+const NOT_FOUND = () => NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 })
 
 export { corsPreflight as OPTIONS }
 
@@ -18,6 +21,7 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 
   const { id } = await params
   const { role } = session.user
+  if (!isValidObjectId(id)) return NOT_FOUND()
 
   await connectToMongoDB()
 
@@ -35,7 +39,7 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 })
 
 const updateSchema = z.object({
-  datos: z.record(z.unknown()),
+  datos: z.record(z.string(), z.unknown()),
 })
 
 export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext) => {
@@ -44,6 +48,7 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
 
   const { id } = await params
   const { role } = session.user
+  if (!isValidObjectId(id)) return NOT_FOUND()
 
   const body: unknown = await req.json()
   const parsed = updateSchema.safeParse(body)
@@ -63,8 +68,20 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
     }
   }
 
-  const newDatos = { ...(submission.datos as Record<string, unknown>), ...parsed.data.datos }
+  // La cédula identifica la fila en Mongo y en el Sheet; no se puede cambiar desde aquí.
+  const newDatos: Record<string, unknown> = {
+    ...(submission.datos as Record<string, unknown>),
+    ...parsed.data.datos,
+    numeroDocumento: submission.cedula,
+  }
   const newMunicipio = typeof newDatos.q_8 === 'string' ? newDatos.q_8 : submission.municipio
+
+  if (role !== 'admin' && newMunicipio !== submission.municipio) {
+    const municipios = await getUserMunicipios(session.user.id)
+    if (!municipios.includes(newMunicipio)) {
+      return NextResponse.json({ error: 'No puedes asignar un municipio fuera de los tuyos' }, { status: 403 })
+    }
+  }
 
   submission.datos = newDatos
   submission.municipio = newMunicipio
@@ -92,6 +109,7 @@ export const DELETE = withCors(async (_req: NextRequest, { params }: RouteContex
 
   const { id } = await params
   const { role } = session.user
+  if (!isValidObjectId(id)) return NOT_FOUND()
 
   await connectToMongoDB()
 

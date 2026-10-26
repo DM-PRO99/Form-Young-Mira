@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, ChevronRight, MapPin } from 'lucide-react'
+import { toast } from 'sonner'
+import { Search, Plus, ChevronRight, MapPin, Trash2 } from 'lucide-react'
 import { getInitials } from '@/lib/initials'
 
 interface Coordinador {
@@ -15,7 +16,7 @@ interface EventRow {
   _id: string
   nombre: string
   lugar: string
-  fecha: string
+  fechas: string[]
   estado: 'borrador' | 'publicado' | 'cerrado'
   capacidadMaxima?: number
   coordinadoresAsignados: Coordinador[]
@@ -46,8 +47,8 @@ function EstadoBadge({ estado }: { estado: EventRow['estado'] }) {
 
 function SkeletonRow() {
   return (
-    <div className="grid grid-cols-[1.7fr_1fr_0.8fr_auto] items-center gap-4 px-[22px] py-[16px] border-b border-border">
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid grid-cols-[1.7fr_1fr_0.8fr_auto_auto] items-center gap-4 px-[22px] py-[16px] border-b border-border">
+      {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="h-4 bg-zinc-100 rounded animate-pulse" />
       ))}
     </div>
@@ -109,6 +110,20 @@ export default function EventosPage() {
     setSearchInput(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => setQ(value), 300)
+  }
+
+  async function handleDelete(e: React.MouseEvent, eventId: string) {
+    e.stopPropagation()
+    if (!window.confirm('¿Eliminar este evento? Se borrarán también sus inscripciones, inventario y tareas. Esta acción no se puede deshacer.')) {
+      return
+    }
+    const res = await fetch(`/api/events/${eventId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setEvents((prev) => prev.filter((ev) => ev._id !== eventId))
+      toast.success('Evento eliminado')
+    } else {
+      toast.error('No se pudo eliminar el evento')
+    }
   }
 
   return (
@@ -188,13 +203,16 @@ export default function EventosPage() {
             <div
               key={event._id}
               onClick={() => router.push(`/admin/eventos/${event._id}`)}
-              className="animate-riseIn grid grid-cols-[1.7fr_1fr_0.8fr_auto] items-center gap-4 px-[22px] py-[16px] border-b border-border last:border-b-0 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated hover:z-10 relative"
+              className="animate-riseIn grid grid-cols-[1.7fr_1fr_0.8fr_auto_auto] items-center gap-4 px-[22px] py-[16px] border-b border-border last:border-b-0 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated hover:z-10 relative"
               style={{ animationDelay: `${i * 60}ms` }}
             >
               <div>
                 <div className="flex items-center gap-2.5 mb-1">
                   <EstadoBadge estado={event.estado} />
-                  <span className="font-mono text-[12px] text-ink-muted">{formatDate(event.fecha)}</span>
+                  <span className="font-mono text-[12px] text-ink-muted">
+                    {formatDate(event.fechas[0])}
+                    {event.fechas.length > 1 && ` · +${event.fechas.length - 1} fecha${event.fechas.length > 2 ? 's' : ''}`}
+                  </span>
                 </div>
                 <p className="text-[14.5px] font-semibold text-ink truncate">{event.nombre}</p>
                 <p className="text-[12.5px] text-ink-muted flex items-center gap-1 mt-0.5">
@@ -225,6 +243,13 @@ export default function EventosPage() {
                   {event.capacidadMaxima ? ` / ${event.capacidadMaxima}` : ''}
                 </p>
               </div>
+
+              <button
+                onClick={(e) => void handleDelete(e, event._id)}
+                className="text-ink-faint hover:text-danger transition-colors duration-150"
+              >
+                <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+              </button>
 
               <ChevronRight className="w-4 h-4 text-ink-faint" strokeWidth={1.8} />
             </div>

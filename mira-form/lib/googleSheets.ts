@@ -46,7 +46,7 @@ const COLUMN_ORDER = [
 ];
 
 // Nombres legibles para los headers
-const COLUMN_HEADERS: { [key: string]: string } = {
+export const COLUMN_HEADERS: { [key: string]: string } = {
   "q_1": "Aceptación Política de Datos",
   "q_2": "Nombre Completo",
   "q_3": "Género",

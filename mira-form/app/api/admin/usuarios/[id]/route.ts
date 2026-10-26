@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
-import User from '@/models/User'
+import User, { MIRA_ROLES } from '@/models/User'
+import { isValidObjectId } from 'mongoose'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { withCors, corsPreflight } from '@/lib/cors'
@@ -29,9 +30,11 @@ export const GET = withCors(async (req: NextRequest, { params }: RouteContext) =
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
+  if (!isValidObjectId(id)) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+
   await connectToMongoDB()
 
-  const user = await User.findById(id).select('-passwordHash').lean()
+  const user = await User.findOne({ _id: id, role: { $in: MIRA_ROLES } }).select('-passwordHash').lean()
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
   return NextResponse.json({ data: user })
@@ -45,10 +48,12 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
   }
 
   const { id } = await params
+  if (!isValidObjectId(id)) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+
   const body: unknown = await req.json()
   const parsed = updateSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
   await connectToMongoDB()
@@ -61,8 +66,8 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
     updateData.passwordHash = await bcrypt.hash(parsed.data.password, 12)
   }
 
-  const user = await User.findByIdAndUpdate(
-    id,
+  const user = await User.findOneAndUpdate(
+    { _id: id, role: { $in: MIRA_ROLES } },
     { $set: updateData },
     { new: true }
   ).select('-passwordHash').lean()

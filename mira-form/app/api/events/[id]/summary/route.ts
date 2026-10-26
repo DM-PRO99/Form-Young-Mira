@@ -7,6 +7,7 @@ import Registration from '@/models/Registration'
 import InventoryItem from '@/models/InventoryItem'
 import Task from '@/models/Task'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { invalidIdResponse } from '@/lib/objectId'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -17,6 +18,8 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
+  const invalid = invalidIdResponse(id)
+  if (invalid) return invalid
   await connectToMongoDB()
 
   const event = await Event.findById(id)
@@ -39,12 +42,13 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
   const tareasCompletadas = tasks.filter((t) => t.completada).length
 
   const capacidadMaxima = event.capacidadMaxima ?? null
-  const cuposDisponibles = capacidadMaxima !== null ? Math.max(0, capacidadMaxima - inscritos) : null
+  const capacidadTotal = capacidadMaxima !== null ? capacidadMaxima * event.fechas.length : null
+  const cuposDisponibles = capacidadTotal !== null ? Math.max(0, capacidadTotal - inscritos) : null
 
   return NextResponse.json({
     data: {
       inscritos,
-      capacidadMaxima,
+      capacidadMaxima: capacidadTotal,
       cuposDisponibles,
       inventario: {
         total: inventarioTotal,

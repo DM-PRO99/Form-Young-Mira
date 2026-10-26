@@ -28,6 +28,15 @@ function getTransporter(): nodemailer.Transporter {
   return cachedTransporter
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function formatFechaEvento(fecha: Date): string {
   return new Date(fecha).toLocaleDateString('es-CO', {
     weekday: 'long',
@@ -58,7 +67,9 @@ export async function sendRegistrationThankYou({
   const logoPath = path.join(process.cwd(), 'public', 'mira-badge.png')
   const logoBuffer = fs.readFileSync(logoPath)
 
-  const primerNombre = nombreCompleto.trim().split(/\s+/)[0] || nombreCompleto
+  const primerNombre = escapeHtml(nombreCompleto.trim().split(/\s+/)[0] || nombreCompleto)
+  const nombreEvento = escapeHtml(eventoNombre)
+  const lugarEvento = escapeHtml(eventoLugar)
 
   const html = `
     <div style="background:#F4F6FA;padding:32px 16px;font-family:'Segoe UI',Arial,sans-serif;">
@@ -70,11 +81,11 @@ export async function sendRegistrationThankYou({
         <div style="padding:28px;">
           <h1 style="font-size:19px;color:#16213E;margin:0 0 12px;">¡Gracias por inscribirte, ${primerNombre}!</h1>
           <p style="font-size:14px;color:#41537A;line-height:1.6;margin:0 0 20px;">
-            Confirmamos tu inscripción a <strong style="color:#16213E;">${eventoNombre}</strong>. Nos alegra que vayas a acompañarnos.
+            Confirmamos tu inscripción a <strong style="color:#16213E;">${nombreEvento}</strong>. Nos alegra que vayas a acompañarnos.
           </p>
           <div style="background:#EAF0FC;border-radius:10px;padding:16px 18px;margin-bottom:20px;">
             <p style="font-size:13px;color:#0B3AA8;margin:0 0 6px;"><strong>Fecha:</strong> ${formatFechaEvento(eventoFecha)}</p>
-            <p style="font-size:13px;color:#0B3AA8;margin:0;"><strong>Lugar:</strong> ${eventoLugar}</p>
+            <p style="font-size:13px;color:#0B3AA8;margin:0;"><strong>Lugar:</strong> ${lugarEvento}</p>
           </div>
           <p style="font-size:12.5px;color:#6B7A99;line-height:1.6;margin:0;">
             Si tienes alguna duda sobre el evento, comunícate con el equipo organizador. ¡Te esperamos!

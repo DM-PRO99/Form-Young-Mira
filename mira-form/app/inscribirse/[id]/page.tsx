@@ -7,11 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
 import { CalendarDays, MapPin, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { MUNICIPIOS } from '@/lib/municipios'
 
 interface PublicEvent {
   nombre: string
   descripcionPublica: string
-  fecha: string
+  fechas: string[]
   lugar: string
   estado: 'borrador' | 'publicado' | 'cerrado'
   cupoAbierto: boolean
@@ -20,9 +21,14 @@ interface PublicEvent {
 const FormSchema = z
   .object({
     nombreCompleto: z.string().min(1, 'El nombre es requerido'),
-    cedula: z.string().min(1, 'La cédula es requerida'),
+    cedula: z
+      .string()
+      .min(1, 'La cédula es requerida')
+      .regex(/^\d{5,15}$/, 'La cédula solo debe contener números'),
     telefono: z.string().min(1, 'El teléfono es requerido'),
     correo: z.string().email('Correo inválido').optional().or(z.literal('')),
+    municipio: z.string().min(1, 'Selecciona tu municipio'),
+    fecha: z.string().min(1, 'Selecciona una fecha'),
     edad: z.string().optional(),
     acudienteNombre: z.string().optional(),
     acudienteTelefono: z.string().optional(),
@@ -64,6 +70,7 @@ export default function InscribirsePage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(FormSchema) })
 
@@ -80,6 +87,9 @@ export default function InscribirsePage() {
         }
         const json = (await res.json()) as { data: PublicEvent }
         setEvent(json.data)
+        if (json.data.fechas.length === 1) {
+          setValue('fecha', json.data.fechas[0])
+        }
       } catch {
         setNotFound(true)
       } finally {
@@ -87,7 +97,7 @@ export default function InscribirsePage() {
       }
     }
     void fetchEvent()
-  }, [params.id])
+  }, [params.id, setValue])
 
   async function onSubmit(data: FormValues) {
     setSubmitting(true)
@@ -100,6 +110,8 @@ export default function InscribirsePage() {
           cedula: data.cedula,
           telefono: data.telefono,
           correo: data.correo || undefined,
+          municipio: data.municipio,
+          fecha: data.fecha,
           edad: data.edad ? Number(data.edad) : undefined,
           acudiente: esMenor ? { nombre: data.acudienteNombre, telefono: data.acudienteTelefono } : undefined,
         }),
@@ -154,7 +166,7 @@ export default function InscribirsePage() {
           <h1 className="text-[21px] font-semibold mb-3">{event.nombre}</h1>
           <div className="flex items-center gap-2 text-[13px] text-white/85 mb-1.5">
             <CalendarDays className="w-4 h-4" strokeWidth={1.8} />
-            {formatFecha(event.fecha)}
+            {event.fechas.length === 1 ? formatFecha(event.fechas[0]) : `${event.fechas.length} fechas disponibles`}
           </div>
           <div className="flex items-center gap-2 text-[13px] text-white/85">
             <MapPin className="w-4 h-4" strokeWidth={1.8} />
@@ -186,7 +198,7 @@ export default function InscribirsePage() {
             <div className="text-center py-6">
               <h2 className="text-[17px] font-semibold text-ink mb-1.5">Ya estás inscrito/a</h2>
               <p className="text-[13.5px] text-ink-muted">
-                Esta cédula ya se encuentra registrada en este evento.
+                Esta cédula ya se encuentra registrada en esta fecha del evento.
               </p>
             </div>
           ) : cerrado ? (
@@ -198,6 +210,27 @@ export default function InscribirsePage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {event.fechas.length > 1 && (
+                <div>
+                  <label className="block text-[13px] font-medium text-ink mb-1.5">Fecha a la que asistirás</label>
+                  <select
+                    {...register('fecha')}
+                    defaultValue=""
+                    className="wizard-input w-full px-3.5 py-2.5 text-[14px] border border-border-input rounded-field bg-canvas"
+                  >
+                    <option value="" disabled>
+                      Selecciona una fecha
+                    </option>
+                    {event.fechas.map((f) => (
+                      <option key={f} value={f}>
+                        {formatFecha(f)}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.fecha && <p className="text-[12px] text-danger mt-1">{errors.fecha.message}</p>}
+                </div>
+              )}
+
               <div>
                 <label className="block text-[13px] font-medium text-ink mb-1.5">Nombre completo</label>
                 <input
@@ -207,6 +240,25 @@ export default function InscribirsePage() {
                 {errors.nombreCompleto && (
                   <p className="text-[12px] text-danger mt-1">{errors.nombreCompleto.message}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-medium text-ink mb-1.5">Municipio</label>
+                <select
+                  {...register('municipio')}
+                  defaultValue=""
+                  className="wizard-input w-full px-3.5 py-2.5 text-[14px] border border-border-input rounded-field bg-canvas"
+                >
+                  <option value="" disabled>
+                    Selecciona tu municipio
+                  </option>
+                  {MUNICIPIOS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                {errors.municipio && <p className="text-[12px] text-danger mt-1">{errors.municipio.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

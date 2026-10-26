@@ -4,7 +4,7 @@ export interface IEvent {
   _id: Types.ObjectId
   nombre: string
   descripcionPublica?: string
-  fecha: Date
+  fechas: Date[]
   lugar: string
   capacidadMaxima?: number
   estado: 'borrador' | 'publicado' | 'cerrado'
@@ -18,7 +18,11 @@ const eventSchema = new Schema<IEvent>(
   {
     nombre: { type: String, required: true },
     descripcionPublica: { type: String },
-    fecha: { type: Date, required: true },
+    fechas: {
+      type: [Date],
+      required: true,
+      validate: { validator: (v: Date[]) => v.length > 0, message: 'Agrega al menos una fecha' },
+    },
     lugar: { type: String, required: true },
     capacidadMaxima: { type: Number },
     estado: { type: String, enum: ['borrador', 'publicado', 'cerrado'], default: 'borrador' },

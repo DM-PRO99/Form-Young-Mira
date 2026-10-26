@@ -2,7 +2,8 @@ import type { NextAuthConfig } from 'next-auth'
 
 export default {
   providers: [],
-  session: { strategy: 'jwt' as const },
+  // Rol y estado activo se fijan al iniciar sesión; una sesión corta limita cuánto dura el acceso tras desactivar a alguien.
+  session: { strategy: 'jwt' as const, maxAge: 8 * 60 * 60 },
   pages: { signIn: '/admin/login' },
   callbacks: {
     jwt({ token, user }) {
@@ -23,6 +24,9 @@ export default {
       const isLoggedIn = !!session?.user
       const isLoginPage = nextUrl.pathname === '/admin/login'
       const isUsuariosPage = nextUrl.pathname.startsWith('/admin/usuarios')
+      const isEstudioEditorPage =
+        nextUrl.pathname === '/admin/estudio/nuevo' ||
+        (nextUrl.pathname.startsWith('/admin/estudio/') && nextUrl.pathname.endsWith('/editar'))
 
       if (isLoginPage) {
         if (isLoggedIn) return Response.redirect(new URL('/admin/dashboard', nextUrl))
@@ -33,6 +37,10 @@ export default {
 
       if (isUsuariosPage && session?.user.role !== 'admin') {
         return Response.redirect(new URL('/admin/dashboard', nextUrl))
+      }
+
+      if (isEstudioEditorPage && session?.user.role !== 'admin') {
+        return Response.redirect(new URL('/admin/estudio', nextUrl))
       }
 
       return true

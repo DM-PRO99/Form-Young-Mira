@@ -5,6 +5,7 @@ import { canAccessEvent } from '@/lib/rbac'
 import Event from '@/models/Event'
 import Task from '@/models/Task'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { invalidIdResponse } from '@/lib/objectId'
 import { z } from 'zod'
 
 type RouteContext = { params: Promise<{ id: string; taskId: string }> }
@@ -23,6 +24,8 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id, taskId } = await params
+  const invalid = invalidIdResponse(id, taskId)
+  if (invalid) return invalid
   const body: unknown = await req.json()
   const parsed = updateSchema.safeParse(body)
   if (!parsed.success) {
@@ -59,6 +62,8 @@ export const DELETE = withCors(async (_req: NextRequest, { params }: RouteContex
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id, taskId } = await params
+  const invalid = invalidIdResponse(id, taskId)
+  if (invalid) return invalid
   await connectToMongoDB()
 
   const event = await Event.findById(id)

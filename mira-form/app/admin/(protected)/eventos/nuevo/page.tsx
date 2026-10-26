@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
-import { ArrowLeft, Copy, Check, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Copy, Check, ShieldCheck, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { getInitials } from '@/lib/initials'
 
 const FormSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
-  fecha: z.string().min(1, 'La fecha es requerida'),
+  fechas: z
+    .array(z.object({ value: z.string().min(1, 'La fecha es requerida') }))
+    .min(1, 'Agrega al menos una fecha'),
   lugar: z.string().min(1, 'El lugar es requerido'),
   capacidadMaxima: z
     .string()
@@ -42,8 +44,14 @@ export default function NuevoEventoPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(FormSchema) })
+  } = useForm<FormValues>({ resolver: zodResolver(FormSchema), defaultValues: { fechas: [{ value: '' }] } })
+
+  const { fields: fechaFields, append: appendFecha, remove: removeFecha } = useFieldArray({
+    control,
+    name: 'fechas',
+  })
 
   useEffect(() => {
     async function fetchUserInfo() {
@@ -78,7 +86,7 @@ export default function NuevoEventoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: data.nombre,
-          fecha: data.fecha,
+          fechas: data.fechas.map((f) => f.value),
           lugar: data.lugar,
           capacidadMaxima: data.capacidadMaxima ? Number(data.capacidadMaxima) : undefined,
           descripcionPublica: data.descripcionPublica || undefined,
@@ -158,14 +166,44 @@ export default function NuevoEventoPage() {
               {errors.nombre && <p className="text-[12px] text-danger mt-1">{errors.nombre.message}</p>}
             </div>
 
-            <div>
+            <div className="col-span-2">
               <label className="block text-[13px] font-medium text-ink mb-1.5">Fecha y hora</label>
-              <input
-                type="datetime-local"
-                {...register('fecha')}
-                className="w-full px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
-              />
-              {errors.fecha && <p className="text-[12px] text-danger mt-1">{errors.fecha.message}</p>}
+              <div className="space-y-2">
+                {fechaFields.map((field, index) => (
+                  <div key={field.id}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="datetime-local"
+                        {...register(`fechas.${index}.value`)}
+                        className="flex-1 px-3.5 py-2.5 text-[13.5px] bg-white border border-border-input rounded-field outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/[0.16] transition-[border-color,box-shadow] duration-150"
+                      />
+                      {fechaFields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeFecha(index)}
+                          className="text-ink-faint hover:text-danger transition-colors duration-150 flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" strokeWidth={1.8} />
+                        </button>
+                      )}
+                    </div>
+                    {errors.fechas?.[index]?.value && (
+                      <p className="text-[12px] text-danger mt-1">{errors.fechas[index]?.value?.message}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {errors.fechas?.root?.message && (
+                <p className="text-[12px] text-danger mt-1">{errors.fechas.root.message}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => appendFecha({ value: '' })}
+                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-primary mt-2"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.8} />
+                Agregar otra fecha
+              </button>
             </div>
 
             <div>

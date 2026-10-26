@@ -31,6 +31,18 @@ function getPageMeta(pathname: string): PageMeta {
   if (pathname.startsWith('/admin/eventos/')) {
     return { title: 'Detalle del evento', subtitle: 'Inscripciones, inventario y tareas' }
   }
+  if (pathname === '/admin/estudio') {
+    return { title: 'Estudio', subtitle: 'Cursos y material de formación' }
+  }
+  if (pathname === '/admin/estudio/nuevo') {
+    return { title: 'Nuevo curso', subtitle: 'Material de formación' }
+  }
+  if (pathname.endsWith('/editar') && pathname.startsWith('/admin/estudio/')) {
+    return { title: 'Editar curso', subtitle: 'Módulos, lecciones y archivos' }
+  }
+  if (pathname.startsWith('/admin/estudio/')) {
+    return { title: 'Curso', subtitle: 'Material de formación' }
+  }
   return { title: 'Panel', subtitle: '' }
 }
 

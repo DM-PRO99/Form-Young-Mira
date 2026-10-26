@@ -5,8 +5,11 @@ import { canAccessEvent } from '@/lib/rbac'
 import Event from '@/models/Event'
 import Registration from '@/models/Registration'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { invalidIdResponse } from '@/lib/objectId'
 import { checkApiRateLimit, getClientIp } from '@/lib/apiRateLimit'
 import { sendRegistrationThankYou } from '@/lib/email'
+import { searchPattern } from '@/lib/searchRegex'
+import { MUNICIPIOS } from '@/lib/municipios'
 import { z } from 'zod'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -19,6 +22,8 @@ export const GET = withCors(async (req: NextRequest, { params }: RouteContext) =
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
+  const invalid = invalidIdResponse(id)
+  if (invalid) return invalid
   await connectToMongoDB()
 
   const event = await Event.findById(id)
@@ -28,12 +33,12 @@ export const GET = withCors(async (req: NextRequest, { params }: RouteContext) =
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const q = req.nextUrl.searchParams.get('q') ?? ''
+  const pattern = searchPattern(req.nextUrl.searchParams.get('q') ?? '')
   const filter: MongoFilter = { eventoId: id }
-  if (q) {
+  if (pattern) {
     filter.$or = [
-      { cedula: { $regex: q, $options: 'i' } },
-      { nombreCompleto: { $regex: q, $options: 'i' } },
+      { cedula: { $regex: pattern, $options: 'i' } },
+      { nombreCompleto: { $regex: pattern, $options: 'i' } },
     ]
   }
 
@@ -43,21 +48,25 @@ export const GET = withCors(async (req: NextRequest, { params }: RouteContext) =
 })
 
 const acudienteSchema = z.object({
-  nombre: z.string().optional(),
-  telefono: z.string().optional(),
+  nombre: z.string().trim().max(100).optional(),
+  telefono: z.string().trim().max(30).optional(),
 })
 
 const registerSchema = z.object({
-  nombreCompleto: z.string().min(1, 'El nombre es requerido'),
-  cedula: z.string().min(1, 'La cédula es requerida'),
-  telefono: z.string().min(1, 'El teléfono es requerido'),
-  correo: z.string().email().optional().or(z.literal('')),
-  edad: z.number().int().positive().optional(),
+  nombreCompleto: z.string().trim().min(1, 'El nombre es requerido').max(100),
+  cedula: z.string().trim().regex(/^\d{5,15}$/, 'Cédula inválida'),
+  telefono: z.string().trim().min(1, 'El teléfono es requerido').max(30),
+  correo: z.string().trim().email().max(254).optional().or(z.literal('')),
+  municipio: z.enum(MUNICIPIOS, { message: 'Selecciona un municipio válido' }),
+  fecha: z.string().min(1, 'Selecciona una fecha').max(40),
+  edad: z.number().int().positive().max(120).optional(),
   acudiente: acudienteSchema.optional(),
 })
 
 export const POST = withCors(async (req: NextRequest, { params }: RouteContext) => {
   const { id } = await params
+  const invalid = invalidIdResponse(id)
+  if (invalid) return invalid
 
   const ip = getClientIp(req)
   const allowed = await checkApiRateLimit(`registro-evento:${ip}`, 10, 10 * 60 * 1000)
@@ -78,7 +87,7 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
   const parsed = registerSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, message: parsed.error.errors[0].message },
+      { success: false, message: parsed.error.issues[0].message },
       { status: 400 }
     )
   }
@@ -95,10 +104,20 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
     )
   }
 
+  const fechaSeleccionada = new Date(parsed.data.fecha)
+  const esFechaValida = event.fechas.some((f) => f.getTime() === fechaSeleccionada.getTime())
+  if (!esFechaValida) {
+    return NextResponse.json({ success: false, message: 'La fecha seleccionada no es válida' }, { status: 400 })
+  }
+
   if (event.capacidadMaxima) {
-    const inscritos = await Registration.countDocuments({ eventoId: id, estado: { $ne: 'cancelado' } })
+    const inscritos = await Registration.countDocuments({
+      eventoId: id,
+      fecha: fechaSeleccionada,
+      estado: { $ne: 'cancelado' },
+    })
     if (inscritos >= event.capacidadMaxima) {
-      return NextResponse.json({ success: false, message: 'Cupo agotado para este evento' }, { status: 409 })
+      return NextResponse.json({ success: false, message: 'Cupo agotado para esta fecha' }, { status: 409 })
     }
   }
 
@@ -109,13 +128,15 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
       cedula: parsed.data.cedula,
       telefono: parsed.data.telefono,
       correo: parsed.data.correo || undefined,
+      municipio: parsed.data.municipio,
+      fecha: fechaSeleccionada,
       edad: parsed.data.edad,
       acudiente: parsed.data.acudiente,
     })
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'code' in err && (err as { code?: number }).code === 11000) {
       return NextResponse.json(
-        { success: false, message: 'Esta cédula ya está inscrita en este evento' },
+        { success: false, message: 'Esta cédula ya está inscrita en esta fecha del evento' },
         { status: 409 }
       )
     }
@@ -128,7 +149,7 @@ export const POST = withCors(async (req: NextRequest, { params }: RouteContext) 
         to: parsed.data.correo,
         nombreCompleto: parsed.data.nombreCompleto,
         eventoNombre: event.nombre,
-        eventoFecha: event.fecha,
+        eventoFecha: fechaSeleccionada,
         eventoLugar: event.lugar,
       })
     } catch (err) {

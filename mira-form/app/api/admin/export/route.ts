@@ -4,6 +4,7 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { QUERY_MAX_TIME_MS, searchPattern } from '@/lib/searchRegex'
 
 type MongoFilter = Record<string, unknown>
 
@@ -50,7 +51,9 @@ const COLUMN_HEADERS: Record<string, string> = {
 }
 
 function escapeCsv(value: unknown): string {
-  const str = Array.isArray(value) ? value.join('; ') : String(value ?? '')
+  let str = Array.isArray(value) ? value.join('; ') : String(value ?? '')
+  // Evita que Excel ejecute como fórmula un valor que escribió alguien en el formulario público.
+  if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`
   }
@@ -102,11 +105,12 @@ export const GET = withCors(async (req: NextRequest) => {
     }
     filters.push({ updatedAt: dr })
   }
-  if (q) {
+  const pattern = searchPattern(q)
+  if (pattern) {
     filters.push({
       $or: [
-        { cedula: { $regex: q, $options: 'i' } },
-        { 'datos.q_2': { $regex: q, $options: 'i' } } as unknown as MongoFilter,
+        { cedula: { $regex: pattern, $options: 'i' } },
+        { 'datos.q_2': { $regex: pattern, $options: 'i' } } as unknown as MongoFilter,
       ],
     })
   }
@@ -114,7 +118,10 @@ export const GET = withCors(async (req: NextRequest) => {
   const mongoFilter: MongoFilter =
     filters.length > 1 ? { $and: filters } : filters.length === 1 ? filters[0] : {}
 
-  const submissions = await Submission.find(mongoFilter).sort({ updatedAt: -1 }).lean()
+  const submissions = await Submission.find(mongoFilter)
+    .sort({ updatedAt: -1 })
+    .maxTimeMS(QUERY_MAX_TIME_MS * 4)
+    .lean()
 
   const headerRow = COLUMN_ORDER.map(k => escapeCsv(COLUMN_HEADERS[k] ?? k)).join(',')
   const dataRows = submissions.map((sub) => {

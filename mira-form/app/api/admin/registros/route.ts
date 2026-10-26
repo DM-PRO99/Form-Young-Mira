@@ -4,6 +4,7 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import { getUserMunicipios } from '@/lib/rbac'
 import Submission from '@/models/Submission'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { QUERY_MAX_TIME_MS, searchPattern } from '@/lib/searchRegex'
 
 type MongoFilter = Record<string, unknown>
 
@@ -52,11 +53,12 @@ export const GET = withCors(async (req: NextRequest) => {
     filters.push({ updatedAt: dr })
   }
 
-  if (q) {
+  const pattern = searchPattern(q)
+  if (pattern) {
     filters.push({
       $or: [
-        { cedula: { $regex: q, $options: 'i' } },
-        { 'datos.q_2': { $regex: q, $options: 'i' } } as unknown as MongoFilter,
+        { cedula: { $regex: pattern, $options: 'i' } },
+        { 'datos.q_2': { $regex: pattern, $options: 'i' } } as unknown as MongoFilter,
       ],
     })
   }
@@ -70,8 +72,9 @@ export const GET = withCors(async (req: NextRequest) => {
       .skip((page - 1) * limit)
       .limit(limit)
       .select('cedula municipio datos updatedAt createdAt')
+      .maxTimeMS(QUERY_MAX_TIME_MS)
       .lean(),
-    Submission.countDocuments(mongoFilter),
+    Submission.countDocuments(mongoFilter).maxTimeMS(QUERY_MAX_TIME_MS),
   ])
 
   return NextResponse.json({ data, total, page, limit })

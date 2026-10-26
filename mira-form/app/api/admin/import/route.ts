@@ -96,9 +96,6 @@ export const POST = withCors(async (req: NextRequest) => {
     })
   } catch (error: any) {
     console.error('Error en importación:', error)
-    return NextResponse.json({ 
-      error: error.message || 'Error al importar datos',
-      details: error.toString()
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Error al importar datos. Revisa los logs del servidor.' }, { status: 500 })
   }
 })

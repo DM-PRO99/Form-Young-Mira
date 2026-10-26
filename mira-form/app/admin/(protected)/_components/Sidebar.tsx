@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, FileText, Users, Calendar, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, Users, Calendar, GraduationCap, LogOut } from 'lucide-react'
 import { getInitials } from '@/lib/initials'
 
 interface SidebarUser {
@@ -71,6 +71,7 @@ export default function Sidebar({ user }: SidebarProps) {
       ? [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }]
       : []),
     { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
+    { href: '/admin/estudio', label: 'Estudio', icon: GraduationCap },
   ]
 
   function isActive(item: NavItem): boolean {

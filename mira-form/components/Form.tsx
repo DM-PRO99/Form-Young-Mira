@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -252,7 +252,8 @@ function screenFieldNames(screen: FormScreen): string[] {
 
 export default function Form({ datosPrellenados = null, onVolverAtras }: FormProps) {
   const { control, handleSubmit, formState: { errors }, watch, setValue, trigger, getValues } = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
+    // El esquema se arma dinámicamente desde questions.ts, así que zod no puede inferir FormValues.
+    resolver: zodResolver(FormSchema) as unknown as Resolver<FormValues>,
     mode: 'onChange',
     defaultValues: {
       q_12: '',

@@ -13,7 +13,8 @@ const cedulaSchema = z.object({
     .min(1, 'La cédula es requerida')
     .min(7, 'La cédula debe tener al menos 7 dígitos')
     .max(12, 'La cédula no puede tener más de 12 dígitos')
-    .regex(/^\d+$/, 'La cédula solo debe contener números')
+    .regex(/^\d+$/, 'La cédula solo debe contener números'),
+  fechaNacimiento: z.string().min(1, 'Ingresa tu fecha de nacimiento para continuar'),
 })
 
 type CedulaFormValues = z.infer<typeof cedulaSchema>
@@ -65,7 +66,7 @@ const Home = () => {
     setLoading(true)
 
     try {
-      const respuesta = await buscarPorCedula(data.cedula)
+      const respuesta = await buscarPorCedula(data.cedula, data.fechaNacimiento)
 
       // Si se encontraron datos, guardarlos en estado y localStorage
       if (respuesta.data) {
@@ -108,21 +109,19 @@ const Home = () => {
     setNotFound(false)
   }
 
-  const buscarPorCedula = async (cedula: string) => {
-    console.log('Buscando cédula:', cedula)
-    const url = `/api/cedula/${cedula}`
-    const response = await fetch(url)
+  const buscarPorCedula = async (cedula: string, fechaNacimiento: string) => {
+    const response = await fetch('/api/cedula', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cedula, fechaNacimiento }),
+    })
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error('Error al buscar cédula:', errorData)
-      throw new Error(errorData.error || errorData.message || 'Error al buscar cédula')
+      throw new Error(errorData.error || 'Error al buscar cédula')
     }
 
-    const data = await response.json()
-    console.log('Datos de la cédula:', data)
-
-    return data
+    return response.json()
   }
 
   // Mostrar loading mientras se verifica el storage
@@ -143,7 +142,7 @@ const Home = () => {
   }
 
   const cedulaDigitCount = cedulaValue.length
-  const isValidCedula = /^\d{7,12}$/.test(cedulaValue)
+  const isValidCedula = /^\d{7,12}$/.test(cedulaValue) && !!watch('fechaNacimiento')
   const showLiveError = cedulaDigitCount > 0 && cedulaDigitCount < 7
 
   return (
@@ -267,21 +266,44 @@ const Home = () => {
               />
             </div>
 
+            <label
+              htmlFor="fechaNacimiento"
+              className="block text-sm font-semibold text-white mb-2 mt-4"
+            >
+              Fecha de nacimiento
+            </label>
+            <div className="relative mb-2">
+              <input
+                id="fechaNacimiento"
+                type="date"
+                {...register('fechaNacimiento', { onChange: () => notFound && setNotFound(false) })}
+                disabled={loading}
+                className="w-full px-4 text-white outline-none transition-colors disabled:opacity-60 [color-scheme:dark]"
+                style={{
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  border: '1.5px solid rgba(255,255,255,0.35)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
             {notFound ? (
               <p
                 className="flex items-center gap-1.5 text-sm mb-6"
                 style={{ color: '#FFC2D1' }}
               >
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.8} />
-                La cédula no se encuentra registrada
+                No encontramos un registro con esa cédula y fecha de nacimiento
               </p>
-            ) : errors.cedula ? (
+            ) : errors.cedula || errors.fechaNacimiento ? (
               <p
                 className="flex items-center gap-1.5 text-sm mb-6"
                 style={{ color: '#FFC2D1' }}
               >
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.8} />
-                {errors.cedula.message}
+                {errors.cedula?.message ?? errors.fechaNacimiento?.message}
               </p>
             ) : (
               <p
@@ -322,7 +344,7 @@ const Home = () => {
               </button>
 
               <button
-                type="submit"
+                type="button"
                 disabled={loading}
                 onClick={redirectToRegisterForm}
                 className="landing-btn-secondary flex-1 font-semibold text-white bg-white/10 border-[1.5px] border-white/35 disabled:cursor-not-allowed disabled:opacity-60"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
@@ -32,7 +32,7 @@ interface EventDetail {
   _id: string
   nombre: string
   descripcionPublica?: string
-  fecha: string
+  fechas: string[]
   lugar: string
   capacidadMaxima?: number
   estado: 'borrador' | 'publicado' | 'cerrado'
@@ -55,6 +55,8 @@ interface RegistrationRow {
   cedula: string
   telefono: string
   correo?: string
+  municipio: string
+  fecha: string
   edad?: number
   estado: 'pendiente' | 'confirmado' | 'cancelado'
   createdAt: string
@@ -101,6 +103,7 @@ const INVENTORY_BADGE: Record<InventoryRow['estado'], { cls: string; label: stri
 
 export default function EventoDetailPage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const id = params.id
 
   const [role, setRole] = useState<'admin' | 'coordinador'>('coordinador')
@@ -142,6 +145,19 @@ export default function EventoDetailPage() {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  async function handleDeleteEvent() {
+    if (!window.confirm('¿Eliminar este evento? Se borrarán también sus inscripciones, inventario y tareas. Esta acción no se puede deshacer.')) {
+      return
+    }
+    const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('Evento eliminado')
+      router.push('/admin/eventos')
+    } else {
+      toast.error('No se pudo eliminar el evento')
+    }
+  }
+
   if (loading) {
     return <div className="admin-view py-16 text-center text-ink-muted text-sm">Cargando evento...</div>
   }
@@ -172,8 +188,8 @@ export default function EventoDetailPage() {
         <div>
           <h2 className="text-[19px] font-semibold text-ink mb-1">{event.nombre}</h2>
           <p className="text-[13px] text-ink-muted font-mono">
-            {formatDate(event.fecha)} · {event.lugar}
-            {event.capacidadMaxima ? ` · cupo ${event.capacidadMaxima}` : ''}
+            {event.fechas.map((f) => formatDate(f)).join(' · ')} · {event.lugar}
+            {event.capacidadMaxima ? ` · cupo ${event.capacidadMaxima} por fecha` : ''}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -199,6 +215,13 @@ export default function EventoDetailPage() {
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? 'Copiado' : 'Copiar enlace'}
+          </button>
+          <button
+            onClick={() => void handleDeleteEvent()}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-danger border border-border-input rounded-field bg-white hover:bg-danger-tint transition-colors duration-150"
+          >
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
+            Eliminar evento
           </button>
         </div>
       </div>
@@ -372,10 +395,14 @@ function InscripcionesTab({ id }: { id: string }) {
   }
 
   function handleExport() {
-    const header = ['Cedula', 'Nombre', 'Telefono', 'Correo', 'Edad', 'Estado']
+    const header = ['Cedula', 'Nombre', 'Telefono', 'Correo', 'Municipio', 'Fecha', 'Edad', 'Estado']
     const lines = rows.map((r) =>
-      [r.cedula, r.nombreCompleto, r.telefono, r.correo ?? '', r.edad ?? '', r.estado]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      [r.cedula, r.nombreCompleto, r.telefono, r.correo ?? '', r.municipio, formatDate(r.fecha), r.edad ?? '', r.estado]
+        .map((v) => {
+          const s = String(v)
+          const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+          return `"${safe.replace(/"/g, '""')}"`
+        })
         .join(',')
     )
     const csv = [header.join(','), ...lines].join('\n')
@@ -416,7 +443,7 @@ function InscripcionesTab({ id }: { id: string }) {
         <table className="w-full text-[13.5px]">
           <thead>
             <tr className="bg-[#FAFBFC] border-b border-border">
-              {['Cédula', 'Nombre', 'Teléfono', 'Correo', 'Edad', 'Estado'].map((h) => (
+              {['Cédula', 'Nombre', 'Teléfono', 'Correo', 'Municipio', 'Fecha', 'Edad', 'Estado'].map((h) => (
                 <th key={h} className="px-[22px] py-[14px] text-left text-[11px] font-semibold text-ink-faint uppercase tracking-[0.08em]">
                   {h}
                 </th>
@@ -426,11 +453,11 @@ function InscripcionesTab({ id }: { id: string }) {
           <tbody className="divide-y divide-[#F1F2F5]">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-[22px] py-8 text-center text-ink-muted">Cargando...</td>
+                <td colSpan={8} className="px-[22px] py-8 text-center text-ink-muted">Cargando...</td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-[22px] py-8 text-center text-ink-muted">No hay inscripciones</td>
+                <td colSpan={8} className="px-[22px] py-8 text-center text-ink-muted">No hay inscripciones</td>
               </tr>
             ) : (
               rows.map((r) => (
@@ -439,6 +466,8 @@ function InscripcionesTab({ id }: { id: string }) {
                   <td className="px-[22px] py-[14px] text-ink">{r.nombreCompleto}</td>
                   <td className="px-[22px] py-[14px] font-mono text-[12.5px] text-ink">{r.telefono}</td>
                   <td className="px-[22px] py-[14px] text-ink-muted">{r.correo ?? '—'}</td>
+                  <td className="px-[22px] py-[14px] text-ink-muted">{r.municipio}</td>
+                  <td className="px-[22px] py-[14px] font-mono text-[12.5px] text-ink-muted">{formatDate(r.fecha)}</td>
                   <td className="px-[22px] py-[14px] font-mono text-ink-muted">{r.edad ?? '—'}</td>
                   <td className="px-[22px] py-[14px]">
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ESTADO_BADGE[r.estado]}`}>

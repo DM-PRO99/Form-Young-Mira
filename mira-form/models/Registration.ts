@@ -7,6 +7,8 @@ export interface IRegistration {
   cedula: string
   telefono: string
   correo?: string
+  municipio: string
+  fecha: Date
   edad?: number
   acudiente?: { nombre?: string; telefono?: string }
   estado: 'pendiente' | 'confirmado' | 'cancelado'
@@ -21,6 +23,8 @@ const registrationSchema = new Schema<IRegistration>(
     cedula: { type: String, required: true },
     telefono: { type: String, required: true },
     correo: { type: String },
+    municipio: { type: String, required: true },
+    fecha: { type: Date, required: true },
     edad: { type: Number },
     acudiente: {
       nombre: { type: String },
@@ -31,7 +35,7 @@ const registrationSchema = new Schema<IRegistration>(
   { timestamps: true }
 )
 
-registrationSchema.index({ eventoId: 1, cedula: 1 }, { unique: true })
+registrationSchema.index({ eventoId: 1, cedula: 1, fecha: 1 }, { unique: true })
 
 const Registration =
   (mongoose.models.Registration as mongoose.Model<IRegistration>) ||

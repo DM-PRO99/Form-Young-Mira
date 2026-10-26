@@ -1,10 +1,13 @@
 import { connectToMongoDB } from '@/lib/mongodb'
 import RateLimit from '@/models/RateLimit'
 
+// En Vercel ambos headers los fija la plataforma; x-real-ip es el que no puede anteponer el cliente.
 export function getClientIp(req: Request): string {
+  const realIp = req.headers.get('x-real-ip')
+  if (realIp) return realIp.trim()
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0].trim()
-  return req.headers.get('x-real-ip') ?? 'unknown'
+  return 'unknown'
 }
 
 export async function checkApiRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {

@@ -1,5 +1,8 @@
 import mongoose, { Schema, Types } from 'mongoose'
 
+// La colección users se comparte con otros proyectos del mismo cluster; filtrar siempre por estos roles.
+export const MIRA_ROLES = ['admin', 'coordinador'] as const
+
 export interface IUser {
   _id: Types.ObjectId
   email: string
