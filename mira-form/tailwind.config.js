@@ -15,6 +15,8 @@ module.exports = {
         'primary-tint': '#EAF0FF',
         'sidebar-from': '#00318C',
         'sidebar-to': '#001348',
+        'sidebar-ink': '#A6B0D0',
+        'surface-muted': '#FAFBFC',
         ink: '#10131A',
         'ink-muted': '#6B7280',
         'ink-faint': '#8A91A0',
@@ -28,10 +30,13 @@ module.exports = {
         'danger-tint': '#FDF2F5',
         warning: '#8A5E12',
         'warning-tint': '#FFF4E0',
+        violet: '#5B3E9E',
+        'violet-tint': '#F4EFFB',
       },
       fontFamily: {
-        sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
-        mono: ['JetBrains Mono', ...defaultTheme.fontFamily.mono],
+        // Las variables las define next/font en app/admin/layout.tsx; fuera del panel se usa el respaldo.
+        sans: ['var(--font-instrument, ui-sans-serif)', ...defaultTheme.fontFamily.sans],
+        mono: ['var(--font-jetbrains, ui-monospace)', ...defaultTheme.fontFamily.mono],
       },
       borderRadius: {
         card: '14px',
@@ -42,12 +47,14 @@ module.exports = {
         card: '0 1px 2px rgba(16,19,26,0.04)',
         elevated: '0 18px 34px -14px rgba(0,40,159,0.28)',
         hero: '0 26px 50px -26px rgba(0,40,159,0.75)',
+        pop: '0 12px 32px -8px rgba(16,19,26,0.18), 0 2px 6px rgba(16,19,26,0.06)',
+        'card-hover': '0 8px 24px -12px rgba(0,40,159,0.18)',
       },
       animation: {
         shimmer: 'shimmer 2s linear infinite',
-        riseIn: 'riseIn 320ms cubic-bezier(0.22,1,0.36,1) both',
-        growBar: 'growBar 620ms cubic-bezier(0.22,1,0.36,1) both',
-        slideIn: 'slideIn 240ms cubic-bezier(0.22,1,0.36,1) both',
+        riseIn: 'riseIn 240ms cubic-bezier(0.23,1,0.32,1) both',
+        growBar: 'growBar 420ms cubic-bezier(0.23,1,0.32,1) both',
+        slideIn: 'slideIn 220ms cubic-bezier(0.23,1,0.32,1) both',
         sheen: 'sheen 4.2s ease-in-out infinite',
       },
       keyframes: {
@@ -56,16 +63,16 @@ module.exports = {
           '100%': { transform: 'translateX(100%)' },
         },
         riseIn: {
-          from: { opacity: '0', transform: 'perspective(1400px) translateY(14px) rotateX(6deg) scale(.985)' },
-          to: { opacity: '1', transform: 'perspective(1400px) translateY(0) rotateX(0) scale(1)' },
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
         },
         growBar: {
-          from: { transform: 'perspective(900px) scaleY(.02) rotateX(28deg)' },
-          to: { transform: 'perspective(900px) scaleY(1) rotateX(0)' },
+          from: { transform: 'scaleY(0.02)' },
+          to: { transform: 'scaleY(1)' },
         },
         slideIn: {
-          from: { opacity: '0', transform: 'perspective(1600px) translateX(56px) rotateY(-14deg)' },
-          to: { opacity: '1', transform: 'perspective(1600px) translateX(0) rotateY(0)' },
+          from: { opacity: '0', transform: 'translateX(16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
         },
         sheen: {
           from: { transform: 'translateX(-120%) skewX(-18deg)' },
