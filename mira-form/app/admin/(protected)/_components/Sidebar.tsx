@@ -4,18 +4,15 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, FileText, Users, Calendar, GraduationCap, LogOut } from 'lucide-react'
-import { getInitials } from '@/lib/initials'
+import { LayoutDashboard, FileText, Users, Calendar, GraduationCap, LogOut, X } from 'lucide-react'
+import { Avatar } from '@/components/admin/ui'
+import { cn } from '@/lib/cn'
 
-interface SidebarUser {
+export interface SidebarUser {
   id: string
   name?: string | null
   email?: string | null
   role: string
-}
-
-interface SidebarProps {
-  user: SidebarUser
 }
 
 function roleLabel(role: string): string {
@@ -32,7 +29,7 @@ interface NavItem {
   badge?: number
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, onClose }: { user: SidebarUser; onClose?: () => void }) {
   const pathname = usePathname()
   const [totalRegistros, setTotalRegistros] = useState<number | null>(null)
 
@@ -59,19 +56,19 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   }, [])
 
-  const items: NavItem[] = [
-    { href: '/admin/dashboard', label: 'Gestión de Juventudes', icon: LayoutDashboard, exact: true },
+  const sections: { title: string; items: NavItem[] }[] = [
     {
-      href: '/admin/registros',
-      label: 'Registros',
-      icon: FileText,
-      badge: totalRegistros ?? undefined,
+      title: 'Juventudes',
+      items: [
+        { href: '/admin/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
+        { href: '/admin/registros', label: 'Registros', icon: FileText, badge: totalRegistros ?? undefined },
+        { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
+        { href: '/admin/estudio', label: 'Estudio', icon: GraduationCap },
+      ],
     },
     ...(user.role === 'admin'
-      ? [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }]
+      ? [{ title: 'Administración', items: [{ href: '/admin/usuarios', label: 'Usuarios', icon: Users }] }]
       : []),
-    { href: '/admin/eventos', label: 'Eventos', icon: Calendar },
-    { href: '/admin/estudio', label: 'Estudio', icon: GraduationCap },
   ]
 
   function isActive(item: NavItem): boolean {
@@ -79,17 +76,9 @@ export default function Sidebar({ user }: SidebarProps) {
     return pathname.startsWith(item.href)
   }
 
-  async function handleSignOut() {
-    await signOut({ redirectTo: '/' })
-  }
-
   return (
-    <aside
-      className="w-[248px] flex-shrink-0 h-screen sticky top-0 flex flex-col text-white"
-      style={{ background: 'linear-gradient(185deg, #00318C, #001348)' }}
-    >
-      {/* Brand */}
-      <div className="px-5 pt-6 pb-5 flex items-center gap-3">
+    <div className="h-full flex flex-col text-white bg-gradient-to-b from-sidebar-from to-sidebar-to">
+      <div className="px-5 pt-6 pb-6 flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/mira-badge.png"
@@ -97,67 +86,77 @@ export default function Sidebar({ user }: SidebarProps) {
           className="w-[34px] h-[34px] rounded-[9px] flex-shrink-0 object-cover"
           style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)' }}
         />
-        <div className="leading-tight">
-          <p className="text-[13.5px] font-semibold text-white">Mira</p>
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-[#A6B0D0]">
-            PANEL
-          </p>
+        <div className="leading-tight flex-1 min-w-0">
+          <p className="text-[14px] font-semibold text-white">Mira</p>
+          <p className="text-[10.5px] font-semibold tracking-[0.1em] text-sidebar-ink">PANEL JUVENTUDES</p>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Cerrar menú"
+            className="press p-1.5 -mr-1.5 rounded-[8px] text-sidebar-ink hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/30"
+          >
+            <X className="w-5 h-5" strokeWidth={1.8} />
+          </button>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="sidebar-nav flex-1 px-3 py-2 space-y-1">
-        {items.map((item) => {
-          const active = isActive(item)
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={
-                'sidebar-item flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-[10px] text-[13.5px] transition-colors duration-150 ' +
-                (active
-                  ? 'bg-white/[0.11] text-white font-semibold'
-                  : 'text-[#A6B0D0] hover:text-white')
-              }
-            >
-              <span className="flex items-center gap-2.5">
-                <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
-                {item.label}
-              </span>
-              {item.badge !== undefined && (
-                <span className="text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-white/[0.14] text-white">
-                  {item.badge.toLocaleString('es-CO')}
-                </span>
-              )}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 space-y-5">
+        {sections.map((section) => (
+          <div key={section.title}>
+            <p className="px-3 mb-1.5 text-[10.5px] font-semibold tracking-[0.1em] uppercase text-sidebar-ink/70">
+              {section.title}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isActive(item)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'sidebar-item relative flex items-center justify-between gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px]',
+                      'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/25',
+                      active ? 'bg-white/[0.11] text-white font-semibold' : 'text-sidebar-ink'
+                    )}
+                  >
+                    {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-white" />}
+                    <span className="flex items-center gap-2.5">
+                      <Icon className="w-[17px] h-[17px] flex-shrink-0" strokeWidth={1.8} />
+                      {item.label}
+                    </span>
+                    {item.badge !== undefined && (
+                      <span className="text-[11px] font-medium tabular-nums text-sidebar-ink">
+                        {item.badge.toLocaleString('es-CO')}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Footer: user */}
-      <div className="px-3 pb-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="w-8 h-8 rounded-full bg-white/[0.14] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {getInitials(user.name, user.email)}
-          </div>
+      <div className="px-3 pb-5 pt-4 border-t border-white/[0.09]">
+        <div className="flex items-center gap-2.5 px-2 py-1.5">
+          <Avatar name={user.name} email={user.email} className="bg-white/[0.14] text-white" />
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-white truncate leading-tight">
-              {user.name ?? user.email ?? 'Usuario'}
-            </p>
-            <p className="text-[11px] text-[#A6B0D0] truncate leading-tight">
-              {roleLabel(user.role)}
-            </p>
+            <p className="text-[13px] font-medium text-white truncate leading-tight">{user.name ?? user.email ?? 'Usuario'}</p>
+            <p className="text-[11px] text-sidebar-ink truncate leading-tight">{roleLabel(user.role)}</p>
           </div>
           <button
-            onClick={() => void handleSignOut()}
+            onClick={() => void signOut({ redirectTo: '/' })}
             aria-label="Cerrar sesión"
-            className="p-1.5 rounded-md text-[#A6B0D0] hover:text-white hover:bg-white/[0.11] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/30"
+            title="Cerrar sesión"
+            className="press p-1.5 rounded-[8px] text-sidebar-ink hover:text-white hover:bg-white/[0.11] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/30"
           >
             <LogOut className="w-4 h-4" strokeWidth={1.8} />
           </button>
         </div>
       </div>
-    </aside>
+    </div>
   )
 }

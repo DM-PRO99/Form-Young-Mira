@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { Menu, RefreshCw } from 'lucide-react'
 
 interface PageMeta {
   title: string
@@ -55,7 +55,7 @@ function timeAgoLabel(seconds: number): string {
   return `hace ${hours} h`
 }
 
-export default function Topbar() {
+export default function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname()
   const { title, subtitle } = getPageMeta(pathname)
 
@@ -84,33 +84,35 @@ export default function Topbar() {
   }
 
   return (
-    <header
-      className="h-[68px] flex-shrink-0 sticky top-0 z-30 flex items-center justify-between px-8 border-b border-border"
-      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.86)' }}
-    >
-      <div className="min-w-0">
-        <h1 className="text-[19px] font-semibold text-ink leading-tight truncate">{title}</h1>
-        {subtitle && (
-          <p className="text-[12.5px] text-ink-muted leading-tight truncate">{subtitle}</p>
-        )}
+    <header className="h-14 md:h-[64px] flex-shrink-0 sticky top-0 z-30 flex items-center justify-between gap-3 px-4 md:px-8 border-b border-border bg-white/[0.86] backdrop-blur-md">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <button
+          onClick={onOpenMenu}
+          aria-label="Abrir menú"
+          className="press lg:hidden -ml-1.5 p-2 rounded-[10px] text-ink hover:bg-canvas focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
+        >
+          <Menu className="w-5 h-5" strokeWidth={1.8} />
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-[16px] md:text-[18px] font-semibold text-ink leading-tight truncate">{title}</h1>
+          {subtitle && <p className="hidden sm:block text-[12.5px] text-ink-muted leading-tight truncate">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-4 flex-shrink-0">
         {lastSync !== null && (
-          <div className="hidden sm:flex items-center gap-2 text-[12.5px] text-ink-muted">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-40 animate-ping" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-            </span>
+          <div className="hidden md:flex items-center gap-2 text-[12.5px] text-ink-muted">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
             Sincronizado {timeAgoLabel(elapsed)}
           </div>
         )}
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas transition duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
+          aria-label="Actualizar"
+          className="press flex items-center gap-2 h-9 px-2.5 sm:px-3.5 text-[13px] font-medium text-ink border border-border-input rounded-field bg-white hover:bg-canvas focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/20"
         >
           <RefreshCw className={'w-4 h-4' + (spinning ? ' animate-spin' : '')} strokeWidth={1.8} />
-          Actualizar
+          <span className="hidden sm:inline">Actualizar</span>
         </button>
       </div>
     </header>
