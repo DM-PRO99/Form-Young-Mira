@@ -20,20 +20,33 @@ export const GET = withCors(async () => {
 
   const progress = await LessonProgress.aggregate([
     { $match: { userId: new Types.ObjectId(session.user.id), courseId: { $in: courses.map((c) => c._id) } } },
-    { $group: { _id: '$courseId', count: { $sum: 1 } } },
+    { $group: { _id: '$courseId', leccionIds: { $push: '$leccionId' } } },
   ])
-  const completedByCourse = new Map(progress.map((p) => [p._id.toString(), p.count as number]))
+  const completedByCourse = new Map(
+    progress.map((p) => [p._id.toString(), new Set((p.leccionIds as Types.ObjectId[]).map((id) => id.toString()))])
+  )
 
-  const data = courses.map((c) => ({
-    _id: c._id,
-    titulo: c.titulo,
-    descripcion: c.descripcion ?? '',
-    estado: c.estado,
-    updatedAt: c.updatedAt,
-    totalModulos: c.modulos.length,
-    totalLecciones: c.modulos.reduce((sum, m) => sum + m.lecciones.length, 0),
-    completadas: completedByCourse.get(c._id.toString()) ?? 0,
-  }))
+  const data = courses.map((c) => {
+    const lecciones = c.modulos.flatMap((m) => m.lecciones)
+    const done = completedByCourse.get(c._id.toString()) ?? new Set<string>()
+    const nextIndex = lecciones.findIndex((l) => !done.has(l._id.toString()))
+    return {
+      _id: c._id,
+      titulo: c.titulo,
+      descripcion: c.descripcion ?? '',
+      estado: c.estado,
+      updatedAt: c.updatedAt,
+      totalModulos: c.modulos.length,
+      totalLecciones: lecciones.length,
+      completadas: lecciones.filter((l) => done.has(l._id.toString())).length,
+      siguienteLeccion: nextIndex >= 0 ? nextIndex + 1 : null,
+      tipos: {
+        video: lecciones.filter((l) => l.tipo === 'video').length,
+        pdf: lecciones.filter((l) => l.tipo === 'pdf').length,
+        presentacion: lecciones.filter((l) => l.tipo === 'presentacion').length,
+      },
+    }
+  })
 
   return NextResponse.json({ data })
 })

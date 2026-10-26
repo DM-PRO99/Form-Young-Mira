@@ -356,3 +356,104 @@ body {
     transform: none;
   }
 }
+
+/* ─── Estudio ───────────────────────────────────────────────────────────── */
+
+.estudio-card {
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+
+/* En pantallas táctiles el hover se dispara al tocar; solo se eleva con mouse. */
+@media (hover: hover) and (pointer: fine) {
+  .estudio-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px -16px rgba(0, 40, 159, 0.26);
+  }
+}
+
+.estudio-card:active {
+  transform: scale(0.98);
+}
+
+.press {
+  transition: transform var(--dur-press) var(--ease-out),
+              background-color 160ms ease,
+              border-color 160ms ease,
+              color 160ms ease;
+}
+
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.progress-fill {
+  transform-origin: left;
+  transition: transform 300ms var(--ease-out);
+}
+
+@keyframes lessonFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lesson-fade {
+  animation: lessonFade 150ms var(--ease-out) both;
+}
+
+@keyframes celebrateIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes celebrateRing {
+  from { opacity: 0.55; transform: scale(0.9); }
+  to { opacity: 0; transform: scale(1.9); }
+}
+
+.celebrate-in {
+  animation: celebrateIn 260ms var(--ease-out) both;
+}
+
+.celebrate-ring {
+  animation: celebrateRing 900ms var(--ease-out) 120ms both;
+}
+
+.dropzone {
+  transition: box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.dropzone[data-active='true'] {
+  background-color: #F5F8FF;
+  box-shadow: 0 0 0 2px #1E56E8;
+}
+
+@keyframes opacityIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Movimiento reducido: se conservan los fundidos, se quitan desplazamientos y escalas. */
+@media (prefers-reduced-motion: reduce) {
+  .estudio-card,
+  .press,
+  .progress-fill {
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  .estudio-card:hover,
+  .estudio-card:active,
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+
+  .lesson-fade,
+  .celebrate-in,
+  .animate-riseIn {
+    animation: opacityIn 150ms ease both;
+  }
+
+  .celebrate-ring {
+    animation: none;
+    opacity: 0;
+  }
+}
