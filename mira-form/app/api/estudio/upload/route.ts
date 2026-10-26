@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
+import { issueSignedToken } from '@vercel/blob'
+import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client'
 import { auth } from '@/auth'
 import { withCors, corsPreflight } from '@/lib/cors'
 import { ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES } from '@/lib/estudio'
 
 export { corsPreflight as OPTIONS }
 
+// El store usa OIDC (BLOB_STORE_ID + identidad de Vercel), no BLOB_READ_WRITE_TOKEN: las subidas
+// desde el navegador van con URLs prefirmadas que emite esta ruta solo para admins.
+const UPLOAD_WINDOW_MS = 60 * 60 * 1000
+
 export const POST = withCors(async (req: NextRequest) => {
-  let body: HandleUploadBody
+  let body: HandleUploadPresignedBody
   try {
-    body = (await req.json()) as HandleUploadBody
+    body = (await req.json()) as HandleUploadPresignedBody
   } catch {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 
   try {
-    const result = await handleUpload({
+    const result = await handleUploadPresigned({
       body,
       request: req,
-      onBeforeGenerateToken: async (pathname) => {
+      getSignedToken: async (pathname) => {
         const session = await auth()
         if (session?.user.role !== 'admin') {
           throw new Error('Solo el administrador puede subir archivos')
@@ -26,10 +31,22 @@ export const POST = withCors(async (req: NextRequest) => {
         if (!pathname.startsWith('estudio/')) {
           throw new Error('Ruta de archivo inválida')
         }
-        return {
+        const validUntil = Date.now() + UPLOAD_WINDOW_MS
+        const token = await issueSignedToken({
+          pathname,
+          operations: ['put'],
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
           maximumSizeInBytes: MAX_UPLOAD_BYTES,
-          addRandomSuffix: true,
+          validUntil,
+        })
+        return {
+          token,
+          urlOptions: {
+            allowedContentTypes: ALLOWED_CONTENT_TYPES,
+            maximumSizeInBytes: MAX_UPLOAD_BYTES,
+            addRandomSuffix: true,
+            validUntil,
+          },
         }
       },
     })

@@ -30,10 +30,14 @@ export function lessonTypeFromFile(file: File): LessonType | null {
   return EXTENSION_TO_TYPE[ext] ?? null
 }
 
+// Con BLOB_STORE_ID (store_AbC123 → abc123.public.blob.vercel-storage.com) solo se acepta el store propio.
 export function isBlobUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url)
-    return protocol === 'https:' && hostname.endsWith('.public.blob.vercel-storage.com')
+    if (protocol !== 'https:') return false
+    const storeId = process.env.BLOB_STORE_ID?.replace(/^store_/, '').toLowerCase()
+    if (storeId) return hostname === `${storeId}.public.blob.vercel-storage.com`
+    return hostname.endsWith('.public.blob.vercel-storage.com')
   } catch {
     return false
   }

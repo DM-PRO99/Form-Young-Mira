@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { upload } from '@vercel/blob/client'
+import { uploadPresigned } from '@vercel/blob/client'
 import { ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, Loader2, PlayCircle, Plus, Presentation, Trash2, Upload } from 'lucide-react'
 import { formatBytes, lessonTypeFromFile, MAX_UPLOAD_BYTES } from '@/lib/estudio'
 import { LESSON_LABEL, type CourseDetail, type LessonType, type Module } from '../../_types'
@@ -145,7 +145,7 @@ export default function EditarCursoPage() {
 
     setUploading({ moduleIndex, fileName: file.name, pct: 0 })
     try {
-      const blob = await upload(`estudio/${id}/${safeFileName(file.name)}`, file, {
+      const blob = await uploadPresigned(`estudio/${id}/${safeFileName(file.name)}`, file, {
         access: 'public',
         handleUploadUrl: '/api/estudio/upload',
         multipart: file.size > 50 * 1024 * 1024,
