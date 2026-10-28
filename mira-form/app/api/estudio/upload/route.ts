@@ -3,7 +3,7 @@ import { issueSignedToken } from '@vercel/blob'
 import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client'
 import { auth } from '@/auth'
 import { withCors, corsPreflight } from '@/lib/cors'
-import { ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES } from '@/lib/estudio'
+import { ALLOWED_CONTENT_TYPES, IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES } from '@/lib/estudio'
 
 export { corsPreflight as OPTIONS }
 
@@ -23,7 +23,7 @@ export const POST = withCors(async (req: NextRequest) => {
     const result = await handleUploadPresigned({
       body,
       request: req,
-      getSignedToken: async (pathname) => {
+      getSignedToken: async (pathname, clientPayload) => {
         const session = await auth()
         if (session?.user.role !== 'admin') {
           throw new Error('Solo el administrador puede subir archivos')
@@ -31,22 +31,24 @@ export const POST = withCors(async (req: NextRequest) => {
         if (!pathname.startsWith('estudio/')) {
           throw new Error('Ruta de archivo inválida')
         }
+        // Las imágenes de la teoría tienen su propio límite y solo aceptan formatos de imagen.
+        const esImagen = clientPayload === 'imagen'
+        if (esImagen && !/^estudio\/[^/]+\/img\//.test(pathname)) {
+          throw new Error('Ruta de imagen inválida')
+        }
+        const allowedContentTypes = esImagen ? IMAGE_CONTENT_TYPES : ALLOWED_CONTENT_TYPES
+        const maximumSizeInBytes = esImagen ? MAX_IMAGE_BYTES : MAX_UPLOAD_BYTES
         const validUntil = Date.now() + UPLOAD_WINDOW_MS
         const token = await issueSignedToken({
           pathname,
           operations: ['put'],
-          allowedContentTypes: ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          allowedContentTypes,
+          maximumSizeInBytes,
           validUntil,
         })
         return {
           token,
-          urlOptions: {
-            allowedContentTypes: ALLOWED_CONTENT_TYPES,
-            maximumSizeInBytes: MAX_UPLOAD_BYTES,
-            addRandomSuffix: true,
-            validUntil,
-          },
+          urlOptions: { allowedContentTypes, maximumSizeInBytes, addRandomSuffix: true, validUntil },
         }
       },
     })

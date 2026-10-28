@@ -13,6 +13,9 @@ export const CONTENT_TYPES_BY_LESSON: Record<LessonType, string[]> = {
 
 export const ALLOWED_CONTENT_TYPES = Object.values(CONTENT_TYPES_BY_LESSON).flat()
 
+export const IMAGE_CONTENT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
 const EXTENSION_TO_TYPE: Record<string, LessonType> = {
   mp4: 'video',
   webm: 'video',

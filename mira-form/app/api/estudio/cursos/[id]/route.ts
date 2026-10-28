@@ -3,15 +3,21 @@ import { isValidObjectId } from 'mongoose'
 import { del } from '@vercel/blob'
 import { auth } from '@/auth'
 import { connectToMongoDB } from '@/lib/mongodb'
-import Course from '@/models/Course'
+import Course, { type ICourse } from '@/models/Course'
 import LessonProgress from '@/models/LessonProgress'
+import QuizAttempt from '@/models/QuizAttempt'
 import { withCors, corsPreflight } from '@/lib/cors'
 import { isBlobUrl } from '@/lib/estudio'
+import { sanitizarHtml, urlsDelCurso } from '@/lib/estudioContenido'
+import { estadoDelCurso } from '@/lib/estudioEstado'
+import { cargarAvance } from '@/lib/estudioProgreso'
 import { z } from 'zod'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
 export { corsPreflight as OPTIONS }
+
+const MAX_HTML = 200_000
 
 async function deleteBlobs(urls: string[]) {
   if (urls.length === 0) return
@@ -31,38 +37,90 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
 
   await connectToMongoDB()
 
-  const course = await Course.findById(id).lean()
-  if (!course || (course.estado !== 'publicado' && session.user.role !== 'admin')) {
+  const course = await Course.findById(id).lean<ICourse>()
+  const esAdmin = session.user.role === 'admin'
+  if (!course || (course.estado !== 'publicado' && !esAdmin)) {
     return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
   }
 
-  const progress = await LessonProgress.find({ userId: session.user.id, courseId: id }).select('leccionId').lean()
+  const avance = await cargarAvance(session.user.id, id)
+  const estado = estadoDelCurso(course, avance.completadas, avance.mejoresPuntajes)
+
+  // El admin ve el curso completo (es quien lo arma). Los demás nunca reciben la respuesta correcta
+  // ni el contenido de un tema que todavía no han desbloqueado.
+  const modulos = course.modulos.map((m, i) => {
+    const bloqueado = !esAdmin && estado[i].bloqueado
+    const cuestionario = m.cuestionario
+      ? {
+          notaMinima: m.cuestionario.notaMinima,
+          totalPreguntas: m.cuestionario.preguntas.length,
+          preguntas: bloqueado
+            ? []
+            : m.cuestionario.preguntas.map((p) => ({
+                _id: p._id,
+                enunciado: p.enunciado,
+                opciones: p.opciones,
+                ...(esAdmin ? { correcta: p.correcta } : {}),
+              })),
+        }
+      : undefined
+    if (bloqueado) {
+      return { _id: m._id, titulo: m.titulo, lecciones: m.lecciones.map((l) => ({ _id: l._id, titulo: l.titulo })), cuestionario }
+    }
+    return { ...m, cuestionario }
+  })
 
   return NextResponse.json({
-    data: { ...course, completadas: progress.map((p) => p.leccionId.toString()) },
+    data: {
+      ...course,
+      modulos,
+      completadas: [...avance.completadas],
+      estadoModulos: estado,
+    },
   })
 })
 
-const lessonSchema = z.object({
-  _id: z.string().optional(),
-  titulo: z.string().trim().min(1, 'Cada lección necesita un título'),
-  tipo: z.enum(['video', 'pdf', 'presentacion']),
-  archivoUrl: z.string().refine(isBlobUrl, 'Archivo inválido'),
-  archivoNombre: z.string().min(1),
-  tamano: z.number().nonnegative(),
-})
+const lessonSchema = z
+  .object({
+    _id: z.string().optional(),
+    titulo: z.string().trim().min(1, 'Cada lección necesita un título').max(200),
+    contenido: z.string().max(MAX_HTML, 'La teoría de una lección es demasiado larga').optional(),
+    tipo: z.enum(['video', 'pdf', 'presentacion']).optional(),
+    archivoUrl: z.string().refine(isBlobUrl, 'Archivo inválido').optional(),
+    archivoNombre: z.string().max(300).optional(),
+    tamano: z.number().nonnegative().optional(),
+  })
+  .refine((l) => !l.archivoUrl || (l.tipo && l.archivoNombre && l.tamano !== undefined), 'Adjunto incompleto')
+
+const questionSchema = z
+  .object({
+    _id: z.string().optional(),
+    enunciado: z.string().trim().min(1, 'Cada pregunta necesita un enunciado').max(1000),
+    opciones: z.array(z.string().trim().min(1, 'Las opciones no pueden estar vacías').max(300)).min(2, 'Cada pregunta necesita al menos 2 opciones').max(6),
+    correcta: z.number().int().min(0),
+  })
+  .refine((p) => p.correcta < p.opciones.length, 'Marca la opción correcta de cada pregunta')
 
 const moduleSchema = z.object({
   _id: z.string().optional(),
-  titulo: z.string().trim().min(1, 'Cada módulo necesita un título'),
-  lecciones: z.array(lessonSchema),
+  titulo: z.string().trim().min(1, 'Cada módulo necesita un título').max(200),
+  descripcion: z.string().max(MAX_HTML, 'La introducción del tema es demasiado larga').optional(),
+  lecciones: z.array(lessonSchema).max(200),
+  cuestionario: z
+    .object({
+      preguntas: z.array(questionSchema).max(50),
+      notaMinima: z.number().int().min(0).max(100),
+    })
+    .nullable()
+    .optional(),
 })
 
 const updateSchema = z.object({
   titulo: z.string().trim().min(1, 'El título es requerido').optional(),
   descripcion: z.string().optional(),
   estado: z.enum(['borrador', 'publicado']).optional(),
-  modulos: z.array(moduleSchema).optional(),
+  desbloqueoSecuencial: z.boolean().optional(),
+  modulos: z.array(moduleSchema).max(100).optional(),
 })
 
 export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext) => {
@@ -89,26 +147,40 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
   if (parsed.data.titulo !== undefined) course.titulo = parsed.data.titulo
   if (parsed.data.descripcion !== undefined) course.descripcion = parsed.data.descripcion
   if (parsed.data.estado !== undefined) course.estado = parsed.data.estado
+  if (parsed.data.desbloqueoSecuencial !== undefined) course.desbloqueoSecuencial = parsed.data.desbloqueoSecuencial
 
   let removedUrls: string[] = []
   let removedLessonIds: string[] = []
+  let removedModuleIds: string[] = []
 
   if (parsed.data.modulos !== undefined) {
-    const oldLessons = course.modulos.flatMap((m) => m.lecciones)
-    const newLessons = parsed.data.modulos.flatMap((m) => m.lecciones)
-    const newUrls = new Set(newLessons.map((l) => l.archivoUrl))
-    const newIds = new Set(newLessons.map((l) => l._id).filter(Boolean))
+    const modulos = parsed.data.modulos.map((m) => ({
+      ...m,
+      descripcion: sanitizarHtml(m.descripcion),
+      cuestionario: m.cuestionario && m.cuestionario.preguntas.length > 0 ? m.cuestionario : undefined,
+      lecciones: m.lecciones.map((l) => ({ ...l, contenido: sanitizarHtml(l.contenido) })),
+    }))
 
-    removedUrls = oldLessons.map((l) => l.archivoUrl).filter((url) => !newUrls.has(url))
-    removedLessonIds = oldLessons.map((l) => l._id.toString()).filter((lid) => !newIds.has(lid))
+    const urlsAntes = urlsDelCurso(course.modulos)
+    const urlsDespues = urlsDelCurso(modulos)
+    removedUrls = [...urlsAntes].filter((u) => !urlsDespues.has(u))
 
-    course.set('modulos', parsed.data.modulos)
+    const newLessonIds = new Set(modulos.flatMap((m) => m.lecciones.map((l) => l._id)).filter(Boolean))
+    removedLessonIds = course.modulos.flatMap((m) => m.lecciones.map((l) => l._id.toString())).filter((lid) => !newLessonIds.has(lid))
+
+    const newModuleIds = new Set(modulos.map((m) => m._id).filter(Boolean))
+    removedModuleIds = course.modulos.map((m) => m._id.toString()).filter((mid) => !newModuleIds.has(mid))
+
+    course.set('modulos', modulos)
   }
 
   await course.save()
 
   if (removedLessonIds.length > 0) {
     await LessonProgress.deleteMany({ courseId: id, leccionId: { $in: removedLessonIds } })
+  }
+  if (removedModuleIds.length > 0) {
+    await QuizAttempt.deleteMany({ courseId: id, moduloId: { $in: removedModuleIds } })
   }
   await deleteBlobs(removedUrls)
 
@@ -130,9 +202,9 @@ export const DELETE = withCors(async (_req: NextRequest, { params }: RouteContex
   const course = await Course.findById(id)
   if (!course) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
 
-  const urls = course.modulos.flatMap((m) => m.lecciones.map((l) => l.archivoUrl))
+  const urls = [...urlsDelCurso(course.modulos)]
 
-  await LessonProgress.deleteMany({ courseId: id })
+  await Promise.all([LessonProgress.deleteMany({ courseId: id }), QuizAttempt.deleteMany({ courseId: id })])
   await Course.deleteOne({ _id: id })
   await deleteBlobs(urls)
 

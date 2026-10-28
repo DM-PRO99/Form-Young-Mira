@@ -26,7 +26,8 @@ export default {
       const isUsuariosPage = nextUrl.pathname.startsWith('/admin/usuarios')
       const isEstudioEditorPage =
         nextUrl.pathname === '/admin/estudio/nuevo' ||
-        (nextUrl.pathname.startsWith('/admin/estudio/') && nextUrl.pathname.endsWith('/editar'))
+        (nextUrl.pathname.startsWith('/admin/estudio/') &&
+          (nextUrl.pathname.endsWith('/editar') || nextUrl.pathname.endsWith('/reporte')))
 
       if (isLoginPage) {
         if (isLoggedIn) return Response.redirect(new URL('/admin/dashboard', nextUrl))

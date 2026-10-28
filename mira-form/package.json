@@ -10,6 +10,11 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/extension-image": "^3.32.0",
+    "@tiptap/pm": "^3.32.0",
+    "@tiptap/react": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0",
     "@vercel/blob": "^2.8.2",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.23.24",
@@ -22,6 +27,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.91.0",
+    "sanitize-html": "^2.18.1",
     "sonner": "^2.0.7",
     "zod": "^4.6.7"
   },
@@ -30,6 +36,7 @@
     "@types/node": "^24.9.2",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.2",
+    "@types/sanitize-html": "^2.16.2",
     "autoprefixer": "^10.4.16",
     "baseline-browser-mapping": "^2.10.0",
     "dotenv": "^17.2.3",
