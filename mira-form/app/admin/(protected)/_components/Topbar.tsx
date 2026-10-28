@@ -37,6 +37,9 @@ function getPageMeta(pathname: string): PageMeta {
   if (pathname === '/admin/estudio/nuevo') {
     return { title: 'Nuevo curso', subtitle: 'Material de formación' }
   }
+  if (pathname.endsWith('/reporte') && pathname.startsWith('/admin/estudio/')) {
+    return { title: 'Reporte de avance', subtitle: 'Avance y notas del equipo en el curso' }
+  }
   if (pathname.endsWith('/editar') && pathname.startsWith('/admin/estudio/')) {
     return { title: 'Editar curso', subtitle: 'Módulos, lecciones y archivos' }
   }

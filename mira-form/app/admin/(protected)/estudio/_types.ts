@@ -1,20 +1,41 @@
 import type { LessonType } from '@/models/Course'
+import type { EstadoModulo } from '@/lib/estudioEstado'
 
-export type { LessonType }
+export type { LessonType, EstadoModulo }
 
+// La teoría (contenido) y el adjunto (tipo + archivo) son opcionales: una lección puede tener uno, otro o ambos.
 export interface Lesson {
   _id?: string
+  // Clave temporal solo del cliente para lecciones nuevas que aún no tienen _id (la API la descarta).
+  _key?: string
   titulo: string
-  tipo: LessonType
-  archivoUrl: string
-  archivoNombre: string
-  tamano: number
+  contenido?: string
+  tipo?: LessonType
+  archivoUrl?: string
+  archivoNombre?: string
+  tamano?: number
+}
+
+export interface Question {
+  _id?: string
+  enunciado: string
+  opciones: string[]
+  // Solo llega al admin; a los demás la API nunca les envía la respuesta correcta.
+  correcta?: number
+}
+
+export interface Quiz {
+  preguntas: Question[]
+  notaMinima: number
+  totalPreguntas?: number
 }
 
 export interface Module {
   _id?: string
   titulo: string
+  descripcion?: string
   lecciones: Lesson[]
+  cuestionario?: Quiz | null
 }
 
 export interface CourseDetail {
@@ -22,8 +43,10 @@ export interface CourseDetail {
   titulo: string
   descripcion?: string
   estado: 'borrador' | 'publicado'
+  desbloqueoSecuencial?: boolean
   modulos: Module[]
   completadas: string[]
+  estadoModulos: EstadoModulo[]
 }
 
 export interface CourseSummary {
@@ -35,7 +58,11 @@ export interface CourseSummary {
   totalLecciones: number
   completadas: number
   siguienteLeccion: number | null
-  tipos: Record<LessonType, number>
+  tipos: { teoria: number; video: number; pdf: number; presentacion: number; cuestionario: number }
+}
+
+export function tieneAdjunto(l: Lesson): l is Lesson & { tipo: LessonType; archivoUrl: string; archivoNombre: string; tamano: number } {
+  return !!(l.tipo && l.archivoUrl)
 }
 
 export const LESSON_LABEL: Record<LessonType, string> = {

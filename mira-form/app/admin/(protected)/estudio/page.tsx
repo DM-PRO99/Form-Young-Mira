@@ -2,23 +2,29 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, GraduationCap, BookOpen, PlayCircle, FileText, Presentation, CheckCircle2, ArrowRight } from 'lucide-react'
-import { courseGradient, type CourseSummary, type LessonType } from './_types'
+import { Plus, GraduationCap, BookOpen, PlayCircle, FileText, Presentation, CheckCircle2, ArrowRight, ClipboardCheck } from 'lucide-react'
+import { courseGradient, type CourseSummary } from './_types'
 
-const TYPE_ICON: Record<LessonType, typeof PlayCircle> = {
+type TipoKey = keyof CourseSummary['tipos']
+
+const TYPE_ICON: Record<TipoKey, typeof PlayCircle> = {
+  teoria: BookOpen,
   video: PlayCircle,
   pdf: FileText,
   presentacion: Presentation,
+  cuestionario: ClipboardCheck,
 }
 
-const TYPE_LABEL: Record<LessonType, [string, string]> = {
+const TYPE_LABEL: Record<TipoKey, [string, string]> = {
+  teoria: ['lección de teoría', 'lecciones de teoría'],
   video: ['video', 'videos'],
   pdf: ['PDF', 'PDF'],
   presentacion: ['presentación', 'presentaciones'],
+  cuestionario: ['cuestionario', 'cuestionarios'],
 }
 
-function predominantType(tipos: CourseSummary['tipos']): LessonType | null {
-  const entries = (Object.entries(tipos) as [LessonType, number][]).filter(([, n]) => n > 0)
+function predominantType(tipos: CourseSummary['tipos']): TipoKey | null {
+  const entries = (Object.entries(tipos) as [TipoKey, number][]).filter(([k, n]) => n > 0 && k !== 'cuestionario')
   if (entries.length === 0) return null
   return entries.sort((a, b) => b[1] - a[1])[0][0]
 }
@@ -45,7 +51,7 @@ function CourseStatus({ course }: { course: CourseSummary }) {
   }
   return (
     <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary">
-      Continuar · Lección {course.siguienteLeccion} de {course.totalLecciones}
+      Continuar · {Math.round((course.completadas / course.totalLecciones) * 100)}% completado
       <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
     </span>
   )
@@ -162,7 +168,7 @@ export default function EstudioPage() {
             const pct = c.totalLecciones > 0 ? (c.completadas / c.totalLecciones) * 100 : 0
             const tipo = predominantType(c.tipos)
             const Icon = tipo ? TYPE_ICON[tipo] : BookOpen
-            const tipoChips = (Object.entries(c.tipos) as [LessonType, number][]).filter(([, n]) => n > 0)
+            const tipoChips = (Object.entries(c.tipos) as [TipoKey, number][]).filter(([, n]) => n > 0)
             return (
               <div key={c._id} className="animate-riseIn flex" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
               <button
