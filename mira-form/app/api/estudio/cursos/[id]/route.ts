@@ -6,6 +6,7 @@ import { connectToMongoDB } from '@/lib/mongodb'
 import Course, { type ICourse } from '@/models/Course'
 import LessonProgress from '@/models/LessonProgress'
 import QuizAttempt from '@/models/QuizAttempt'
+import Entrega from '@/models/Entrega'
 import { withCors, corsPreflight } from '@/lib/cors'
 import { isBlobUrl } from '@/lib/estudio'
 import { sanitizarHtml, urlsDelCurso } from '@/lib/estudioContenido'
@@ -70,10 +71,28 @@ export const GET = withCors(async (_req: NextRequest, { params }: RouteContext) 
     return { ...m, cuestionario }
   })
 
+  // Tareas: el coordinador solo ve las publicadas y el estado de sus entregas; el admin ve todas con sus conteos.
+  const tareas = (course.tareas ?? []).filter((t) => esAdmin || t.publicada)
+  const entregas = await Entrega.find(esAdmin ? { courseId: id } : { courseId: id, userId: session.user.id })
+    .select('tareaId userId entregadaEn calificacion')
+    .lean()
+  const resumenTareas = tareas.map((t) => {
+    const deLaTarea = entregas.filter((e) => e.tareaId.toString() === t._id.toString())
+    if (esAdmin) {
+      return { ...t, totalEntregas: deLaTarea.length, sinCalificar: deLaTarea.filter((e) => e.calificacion === undefined || e.calificacion === null).length }
+    }
+    const mia = deLaTarea[0]
+    return {
+      ...t,
+      miEntrega: mia ? { entregadaEn: mia.entregadaEn, calificacion: mia.calificacion ?? null } : null,
+    }
+  })
+
   return NextResponse.json({
     data: {
       ...course,
       modulos,
+      tareas: resumenTareas,
       completadas: [...avance.completadas],
       estadoModulos: estado,
     },
@@ -120,6 +139,9 @@ const updateSchema = z.object({
   descripcion: z.string().optional(),
   estado: z.enum(['borrador', 'publicado']).optional(),
   desbloqueoSecuencial: z.boolean().optional(),
+  portadaUrl: z.string().refine(isBlobUrl, 'Imagen de portada inválida').nullable().optional(),
+  inicio: z.string().max(MAX_HTML, 'El contenido de Inicio es demasiado largo').optional(),
+  programa: z.string().max(MAX_HTML, 'El programa del curso es demasiado largo').optional(),
   modulos: z.array(moduleSchema).max(100).optional(),
 })
 
@@ -149,9 +171,13 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
   if (parsed.data.estado !== undefined) course.estado = parsed.data.estado
   if (parsed.data.desbloqueoSecuencial !== undefined) course.desbloqueoSecuencial = parsed.data.desbloqueoSecuencial
 
-  let removedUrls: string[] = []
+  const urlsAntes = urlsDelCurso(course.toObject())
   let removedLessonIds: string[] = []
   let removedModuleIds: string[] = []
+
+  if (parsed.data.portadaUrl !== undefined) course.portadaUrl = parsed.data.portadaUrl ?? undefined
+  if (parsed.data.inicio !== undefined) course.inicio = sanitizarHtml(parsed.data.inicio)
+  if (parsed.data.programa !== undefined) course.programa = sanitizarHtml(parsed.data.programa)
 
   if (parsed.data.modulos !== undefined) {
     const modulos = parsed.data.modulos.map((m) => ({
@@ -161,10 +187,6 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
       lecciones: m.lecciones.map((l) => ({ ...l, contenido: sanitizarHtml(l.contenido) })),
     }))
 
-    const urlsAntes = urlsDelCurso(course.modulos)
-    const urlsDespues = urlsDelCurso(modulos)
-    removedUrls = [...urlsAntes].filter((u) => !urlsDespues.has(u))
-
     const newLessonIds = new Set(modulos.flatMap((m) => m.lecciones.map((l) => l._id)).filter(Boolean))
     removedLessonIds = course.modulos.flatMap((m) => m.lecciones.map((l) => l._id.toString())).filter((lid) => !newLessonIds.has(lid))
 
@@ -173,6 +195,9 @@ export const PATCH = withCors(async (req: NextRequest, { params }: RouteContext)
 
     course.set('modulos', modulos)
   }
+
+  const urlsDespues = urlsDelCurso(course.toObject())
+  const removedUrls = [...urlsAntes].filter((u) => !urlsDespues.has(u))
 
   await course.save()
 
@@ -202,9 +227,14 @@ export const DELETE = withCors(async (_req: NextRequest, { params }: RouteContex
   const course = await Course.findById(id)
   if (!course) return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 })
 
-  const urls = [...urlsDelCurso(course.modulos)]
+  const entregas = await Entrega.find({ courseId: id }).select('archivoUrl').lean()
+  const urls = [...urlsDelCurso(course.toObject()), ...entregas.map((e) => e.archivoUrl).filter((u): u is string => !!u)]
 
-  await Promise.all([LessonProgress.deleteMany({ courseId: id }), QuizAttempt.deleteMany({ courseId: id })])
+  await Promise.all([
+    LessonProgress.deleteMany({ courseId: id }),
+    QuizAttempt.deleteMany({ courseId: id }),
+    Entrega.deleteMany({ courseId: id }),
+  ])
   await Course.deleteOne({ _id: id })
   await deleteBlobs(urls)
 

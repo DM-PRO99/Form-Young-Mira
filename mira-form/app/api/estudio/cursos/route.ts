@@ -52,6 +52,7 @@ export const GET = withCors(async () => {
       titulo: c.titulo,
       descripcion: c.descripcion ?? '',
       estado: c.estado,
+      portadaUrl: c.portadaUrl ?? null,
       updatedAt: c.updatedAt,
       totalModulos: c.modulos.length,
       totalLecciones: lecciones.length + cuestionarios.length,

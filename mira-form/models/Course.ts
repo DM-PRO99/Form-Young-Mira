@@ -34,14 +34,30 @@ export interface IModule {
   cuestionario?: IQuiz
 }
 
+export interface ITarea {
+  _id: Types.ObjectId
+  titulo: string
+  instrucciones?: string
+  fechaLimite?: Date
+  puntajeMaximo: number
+  entregaArchivo: boolean
+  entregaTexto: boolean
+  publicada: boolean
+}
+
 export interface ICourse {
   _id: Types.ObjectId
   titulo: string
   descripcion?: string
   estado: 'borrador' | 'publicado'
   desbloqueoSecuencial: boolean
+  // Carátula del curso: imagen (también se ve en la tarjeta) y contenido de la página de Inicio.
+  portadaUrl?: string
+  inicio?: string
+  programa?: string
   creadoPor: Types.ObjectId
   modulos: IModule[]
+  tareas: ITarea[]
   createdAt: Date
   updatedAt: Date
 }
@@ -76,14 +92,28 @@ const moduleSchema = new Schema<IModule>({
   cuestionario: { type: quizSchema },
 })
 
+const tareaSchema = new Schema<ITarea>({
+  titulo: { type: String, required: true },
+  instrucciones: { type: String },
+  fechaLimite: { type: Date },
+  puntajeMaximo: { type: Number, default: 100 },
+  entregaArchivo: { type: Boolean, default: true },
+  entregaTexto: { type: Boolean, default: true },
+  publicada: { type: Boolean, default: false },
+})
+
 const courseSchema = new Schema<ICourse>(
   {
     titulo: { type: String, required: true },
     descripcion: { type: String },
     estado: { type: String, enum: ['borrador', 'publicado'], default: 'borrador' },
     desbloqueoSecuencial: { type: Boolean, default: false },
+    portadaUrl: { type: String },
+    inicio: { type: String },
+    programa: { type: String },
     creadoPor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     modulos: { type: [moduleSchema], default: [] },
+    tareas: { type: [tareaSchema], default: [] },
   },
   { timestamps: true }
 )

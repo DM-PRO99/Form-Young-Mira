@@ -3,7 +3,11 @@ import { issueSignedToken } from '@vercel/blob'
 import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client'
 import { auth } from '@/auth'
 import { withCors, corsPreflight } from '@/lib/cors'
+import { isValidObjectId } from 'mongoose'
 import { ALLOWED_CONTENT_TYPES, IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES } from '@/lib/estudio'
+import { ENTREGA_CONTENT_TYPES, MAX_ENTREGA_BYTES } from '@/lib/estudioTareas'
+import { connectToMongoDB } from '@/lib/mongodb'
+import Course from '@/models/Course'
 
 export { corsPreflight as OPTIONS }
 
@@ -25,11 +29,41 @@ export const POST = withCors(async (req: NextRequest) => {
       request: req,
       getSignedToken: async (pathname, clientPayload) => {
         const session = await auth()
-        if (session?.user.role !== 'admin') {
-          throw new Error('Solo el administrador puede subir archivos')
-        }
+        if (!session) throw new Error('No autorizado')
         if (!pathname.startsWith('estudio/')) {
           throw new Error('Ruta de archivo inválida')
+        }
+
+        // Entregas de tareas: cualquier persona del panel, solo dentro de su propia carpeta del curso.
+        if (clientPayload === 'entrega') {
+          const m = /^estudio\/([^/]+)\/entregas\/([^/]+)\/[^/]+$/.exec(pathname)
+          if (!m || m[2] !== session.user.id || !isValidObjectId(m[1])) {
+            throw new Error('Ruta de entrega inválida')
+          }
+          await connectToMongoDB()
+          const filtro = session.user.role === 'admin' ? { _id: m[1] } : { _id: m[1], estado: 'publicado' as const }
+          if (!(await Course.exists(filtro))) throw new Error('Curso no encontrado')
+          const validUntil = Date.now() + UPLOAD_WINDOW_MS
+          const token = await issueSignedToken({
+            pathname,
+            operations: ['put'],
+            allowedContentTypes: ENTREGA_CONTENT_TYPES,
+            maximumSizeInBytes: MAX_ENTREGA_BYTES,
+            validUntil,
+          })
+          return {
+            token,
+            urlOptions: {
+              allowedContentTypes: ENTREGA_CONTENT_TYPES,
+              maximumSizeInBytes: MAX_ENTREGA_BYTES,
+              addRandomSuffix: true,
+              validUntil,
+            },
+          }
+        }
+
+        if (session.user.role !== 'admin') {
+          throw new Error('Solo el administrador puede subir archivos')
         }
         // Las imágenes de la teoría tienen su propio límite y solo aceptan formatos de imagen.
         const esImagen = clientPayload === 'imagen'

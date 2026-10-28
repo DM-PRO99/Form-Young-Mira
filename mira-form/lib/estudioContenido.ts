@@ -30,12 +30,23 @@ export function htmlTieneContenido(html: string | undefined | null): boolean {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0
 }
 
-// Todos los archivos del Blob que usa un curso: adjuntos de lecciones e imágenes de la teoría.
-export function urlsDelCurso(
+interface CursoConArchivos {
+  portadaUrl?: string | null
+  inicio?: string | null
+  programa?: string | null
+  tareas?: { instrucciones?: string | null }[]
   modulos: { descripcion?: string | null; lecciones: { contenido?: string | null; archivoUrl?: string | null }[] }[]
-): Set<string> {
+}
+
+// Todos los archivos del Blob que usa un curso: portada, adjuntos de lecciones e imágenes de cualquier texto con formato.
+// No incluye las entregas de tareas, que tienen su propio ciclo de vida.
+export function urlsDelCurso(curso: CursoConArchivos): Set<string> {
   const urls = new Set<string>()
-  for (const m of modulos) {
+  if (curso.portadaUrl && isBlobUrl(curso.portadaUrl)) urls.add(curso.portadaUrl)
+  for (const html of [curso.inicio, curso.programa, ...(curso.tareas ?? []).map((t) => t.instrucciones)]) {
+    urlsDeBlobEnHtml(html).forEach((u) => urls.add(u))
+  }
+  for (const m of curso.modulos) {
     urlsDeBlobEnHtml(m.descripcion).forEach((u) => urls.add(u))
     for (const l of m.lecciones) {
       if (l.archivoUrl) urls.add(l.archivoUrl)
