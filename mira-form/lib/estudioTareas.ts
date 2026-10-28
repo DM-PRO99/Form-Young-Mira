@@ -17,6 +17,7 @@ export const ENTREGA_CONTENT_TYPES = [
   'image/webp',
   'video/mp4',
   'application/zip',
+  'application/x-zip-compressed',
 ]
 
 export const tareaSchema = z

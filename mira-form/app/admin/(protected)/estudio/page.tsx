@@ -175,7 +175,12 @@ export default function EstudioPage() {
                 onClick={() => router.push(`/admin/estudio/${c._id}`)}
                 className="estudio-card w-full text-left bg-surface rounded-card border border-border shadow-card overflow-hidden flex flex-col"
               >
-                <div className="h-[104px] px-5 pb-4 flex items-end relative overflow-hidden" style={{ background: courseGradient(c._id) }}>
+                <div className="h-[104px] px-5 pb-4 flex items-end relative overflow-hidden" style={{
+                    // Con portada se usa la foto, con un velo abajo para que el ícono se lea sobre cualquier imagen.
+                    background: c.portadaUrl
+                      ? `linear-gradient(180deg, rgba(10,36,114,0) 35%, rgba(10,36,114,0.6) 100%), center / cover no-repeat url("${c.portadaUrl}")`
+                      : courseGradient(c._id),
+                  }}>
                   <div
                     className="absolute -right-6 -top-8 w-32 h-32 rounded-full pointer-events-none"
                     style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)' }}

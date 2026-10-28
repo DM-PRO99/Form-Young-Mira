@@ -15,9 +15,11 @@ import {
   ClipboardCheck,
   Eye,
   FileText,
+  ImagePlus,
   Loader2,
   Lock,
   Plus,
+  ScrollText,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -59,6 +61,11 @@ export default function EditarCursoPage() {
   const [descripcion, setDescripcion] = useState('')
   const [estado, setEstado] = useState<'borrador' | 'publicado'>('borrador')
   const [desbloqueoSecuencial, setDesbloqueoSecuencial] = useState(false)
+  const [portadaUrl, setPortadaUrl] = useState<string | null>(null)
+  const [inicio, setInicio] = useState('')
+  const [programa, setPrograma] = useState('')
+  const [subiendoPortada, setSubiendoPortada] = useState(false)
+  const portadaInputRef = useRef<HTMLInputElement>(null)
   const [modulos, setModulosState] = useState<Module[]>([])
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -89,6 +96,9 @@ export default function EditarCursoPage() {
       setDescripcion(json.data.descripcion ?? '')
       setEstado(json.data.estado)
       setDesbloqueoSecuencial(!!json.data.desbloqueoSecuencial)
+      setPortadaUrl(json.data.portadaUrl ?? null)
+      setInicio(json.data.inicio ?? '')
+      setPrograma(json.data.programa ?? '')
       modulosRef.current = json.data.modulos
       setModulosState(json.data.modulos)
     }
@@ -98,6 +108,12 @@ export default function EditarCursoPage() {
   useEffect(() => {
     void fetchCourse()
   }, [fetchCourse])
+
+  // Desde Inicio o Programa se llega con #caratula o #programa: se baja hasta esa sección.
+  useEffect(() => {
+    if (loading || !window.location.hash) return
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loading])
 
   useEffect(() => {
     if (!dirty) return
@@ -128,6 +144,9 @@ export default function EditarCursoPage() {
       descripcion,
       estado: overrides?.estado ?? estado,
       desbloqueoSecuencial: overrides?.desbloqueoSecuencial ?? desbloqueoSecuencial,
+      portadaUrl,
+      inicio,
+      programa,
       modulos: overrides?.modulos ?? modulosRef.current,
     }
     if (!payload.titulo.trim()) {
@@ -238,6 +257,27 @@ export default function EditarCursoPage() {
     })
     setDirty(true)
     return blob.url
+  }
+
+  async function uploadPortada(file: File) {
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) {
+      toast.error('La portada debe ser una imagen PNG, JPG, WEBP o GIF')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('La portada no puede pasar de 10 MB')
+      return
+    }
+    setSubiendoPortada(true)
+    try {
+      const url = await uploadImage(new File([file], `portada-${file.name}`, { type: file.type }))
+      setPortadaUrl(url)
+      setDirty(true)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo subir la portada')
+    } finally {
+      setSubiendoPortada(false)
+    }
   }
 
   async function uploadFiles(files: File[], target: UploadTarget) {
@@ -366,7 +406,7 @@ export default function EditarCursoPage() {
     )
   }
 
-  const busy = saving || uploading !== null
+  const busy = saving || uploading !== null || subiendoPortada
 
   return (
     <div className="admin-view">
@@ -436,6 +476,102 @@ export default function EditarCursoPage() {
                 }}
               />
             </div>
+          </Card>
+
+          <Card id="caratula" className="p-5 md:p-6 space-y-4 scroll-mt-[96px]">
+            <div className="flex items-start gap-3">
+              <ImagePlus className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" strokeWidth={1.8} />
+              <div>
+                <p className="text-[14px] font-bold text-ink">Carátula del curso</p>
+                <p className="text-[12.5px] text-ink-muted">Es lo primero que se ve al entrar al curso («Inicio»). La portada también aparece en la tarjeta del curso.</p>
+              </div>
+            </div>
+
+            <input
+              ref={portadaInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) void uploadPortada(f)
+              }}
+            />
+            {portadaUrl ? (
+              <div className="relative overflow-hidden rounded-card border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={portadaUrl} alt="Portada del curso" className="w-full aspect-[16/7] object-cover" />
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => portadaInputRef.current?.click()}
+                    className="press inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/90 backdrop-blur text-[12px] font-semibold text-ink shadow-card hover:bg-white disabled:opacity-60"
+                  >
+                    {subiendoPortada ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" strokeWidth={1.8} />}
+                    Cambiar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setPortadaUrl(null)
+                      setDirty(true)
+                    }}
+                    className="press inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/90 backdrop-blur text-[12px] font-semibold text-danger shadow-card hover:bg-white disabled:opacity-60"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
+                    Quitar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => portadaInputRef.current?.click()}
+                className="w-full aspect-[16/6] flex flex-col items-center justify-center gap-1.5 rounded-card border border-dashed border-primary/40 bg-primary-tint/40 text-primary hover:bg-primary-tint transition-colors duration-150 disabled:opacity-60"
+              >
+                {subiendoPortada ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImagePlus className="w-5 h-5" strokeWidth={1.8} />}
+                <span className="text-[13px] font-semibold">{subiendoPortada ? 'Subiendo portada…' : 'Subir foto de portada'}</span>
+                <span className="text-[11.5px] text-ink-muted">PNG, JPG o WEBP · horizontal, idealmente 1600×700</span>
+              </button>
+            )}
+
+            <div>
+              <p className="block text-[13px] font-medium text-ink mb-1.5">Contenido de Inicio</p>
+              <RichTextEditor
+                value={inicio}
+                onChange={(html) => {
+                  setInicio(html)
+                  setDirty(true)
+                }}
+                onUploadImage={uploadImage}
+                placeholder="Bienvenida al curso: de qué trata, a quién va dirigido, cómo se trabaja y a quién contactar…"
+                minHeight={140}
+              />
+            </div>
+          </Card>
+
+          <Card id="programa" className="p-5 md:p-6 space-y-3 scroll-mt-[96px]">
+            <div className="flex items-start gap-3">
+              <ScrollText className="w-4 h-4 text-violet mt-0.5 flex-shrink-0" strokeWidth={1.8} />
+              <div>
+                <p className="text-[14px] font-bold text-ink">Programa del curso</p>
+                <p className="text-[12.5px] text-ink-muted">Objetivos, metodología, cronograma y forma de evaluación.</p>
+              </div>
+            </div>
+            <RichTextEditor
+              value={programa}
+              onChange={(html) => {
+                setPrograma(html)
+                setDirty(true)
+              }}
+              onUploadImage={uploadImage}
+              placeholder="Objetivos del curso, temas, cronograma y cómo se califica…"
+              minHeight={140}
+            />
           </Card>
 
           {modulos.map((m, mi) => {
@@ -653,6 +789,7 @@ export default function EditarCursoPage() {
               <li>Una lección puede tener teoría escrita y un archivo de apoyo.</li>
               <li>Archivos: MP4, WEBM, MOV, PDF, PPT o PPTX, hasta {formatBytes(MAX_UPLOAD_BYTES)}.</li>
               <li>Arrastra las lecciones por el ícono ⋮⋮ para reordenarlas.</li>
+              <li>Las tareas con entrega se crean desde la sección «Tareas» del curso.</li>
             </ul>
           </div>
 

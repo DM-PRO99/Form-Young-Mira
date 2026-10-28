@@ -44,9 +44,42 @@ export interface CourseDetail {
   descripcion?: string
   estado: 'borrador' | 'publicado'
   desbloqueoSecuencial?: boolean
+  portadaUrl?: string | null
+  inicio?: string
+  programa?: string
   modulos: Module[]
+  tareas: Tarea[]
   completadas: string[]
   estadoModulos: EstadoModulo[]
+}
+
+export interface Tarea {
+  _id: string
+  titulo: string
+  instrucciones?: string
+  fechaLimite?: string | null
+  puntajeMaximo: number
+  entregaArchivo: boolean
+  entregaTexto: boolean
+  publicada: boolean
+  // Solo para el admin
+  totalEntregas?: number
+  sinCalificar?: number
+  // Solo para quien entrega
+  miEntrega?: { entregadaEn: string; calificacion: number | null } | null
+}
+
+export interface Entrega {
+  _id: string
+  userId: string | { _id: string; nombre?: string; email?: string }
+  texto?: string
+  archivoUrl?: string
+  archivoNombre?: string
+  tamano?: number
+  entregadaEn: string
+  calificacion?: number | null
+  comentario?: string
+  calificadaEn?: string
 }
 
 export interface CourseSummary {
@@ -54,6 +87,7 @@ export interface CourseSummary {
   titulo: string
   descripcion: string
   estado: 'borrador' | 'publicado'
+  portadaUrl?: string | null
   totalModulos: number
   totalLecciones: number
   completadas: number
@@ -86,4 +120,12 @@ export function courseGradient(id: string): string {
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
   const [from, to] = COURSE_THEMES[hash % COURSE_THEMES.length]
   return `linear-gradient(160deg, ${from} 0%, ${to} 100%)`
+}
+
+export function tareaVencida(t: Pick<Tarea, 'fechaLimite'>): boolean {
+  return !!t.fechaLimite && new Date(t.fechaLimite).getTime() < Date.now()
+}
+
+export function formatFechaLimite(iso: string): string {
+  return new Date(iso).toLocaleString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
 }
